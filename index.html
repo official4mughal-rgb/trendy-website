@@ -94,6 +94,35 @@ orange:{bg:'#E65100',panel:'#FFF',ink:'#1A0A00',muted:'#5A2A10',line:'rgba(0,0,0
 (function(){var th=window.TRENDY_THEMES.white;for(var k in th)document.documentElement.style.setProperty('--'+k,th[k]);})();
 </script>
 <style id="critical-theme">:root{--bg:#FFFFFF;--panel:#FFFFFF;--ink:#1A1A1A;--muted:#6B6B6B;--line:#E5E5E5;--orange:#1A1A1A}html{background:#FFFFFF}</style>
+<script>/* FIX #4: gate sections until data ready (9s failsafe so the page can never stay blank) */document.documentElement.classList.add('app-loading');setTimeout(function(){document.documentElement.classList.remove('app-loading')},9000);</script>
+<style id="fix4-loading">
+/* FIX #4: loading screen + layout-shift prevention + fade-in */
+#appLoader{position:fixed;inset:0;z-index:99990;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .5s ease}
+#appLoader.hide{opacity:0;pointer-events:none}
+#appLoader .alLogo{font-family:'Montserrat',sans-serif;font-weight:600;font-size:clamp(30px,8vw,52px);letter-spacing:.32em;padding-left:.32em;color:#1A1A1A}
+#appLoader .alLogo b{font-weight:300}
+#appLoader .alBar{width:120px;height:2px;background:#E5E5E5;overflow:hidden;position:relative}
+#appLoader .alBar::after{content:'';position:absolute;inset:0;width:40%;background:#C2185B;animation:alSlide 1.1s ease-in-out infinite}
+@keyframes alSlide{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+body{overscroll-behavior-y:contain;overflow-x:hidden}
+#fdWrap,#coll,#premium-product-grids{position:relative;transition:opacity .6s ease}
+#fdWrap{min-height:300px}#coll{min-height:400px}#premium-product-grids>section{min-height:500px;position:relative}
+html.app-loading #fdWrap,html.app-loading #coll,html.app-loading #premium-product-grids,html.app-loading #heroSlider{opacity:0}
+.fdMedia,.colc-imgwrap{aspect-ratio:3/4}
+/* FIX #1: collection circle image */
+.ccirc .cin img.ccImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:ccFade .5s ease}
+@keyframes ccFade{from{opacity:0}to{opacity:1}}
+/* FIX #2: floating WhatsApp pulse */
+.waFloat::before{content:'';position:absolute;inset:0;border-radius:50%;animation:waPulse 2s ease-out infinite;pointer-events:none}
+@keyframes waPulse{0%{box-shadow:0 0 0 0 rgba(37,211,102,.55)}100%{box-shadow:0 0 0 18px rgba(37,211,102,0)}}
+@media (prefers-reduced-motion:reduce){.waFloat::before{animation:none}}
+/* FIX #3: order move animation */
+#ordersList.ordAnim .vrow{animation:ordIn .35s ease}
+@keyframes ordIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* FIX #7: spinner inside city dropdown */
+#cf-coCity{position:relative}
+#cf-coCity.srLoading::after{content:'';position:absolute;right:34px;top:38px;width:16px;height:16px;border:2px solid #D5D5D5;border-top-color:#C2185B;border-radius:50%;animation:lmSpin .7s linear infinite}
+</style>
 <!-- AUDIT FIX (Section J — Security): this file previously shipped TWO
      separate CSP meta tags. Per the HTML spec, multiple CSP meta tags are
      each independently enforced (the browser intersects every directive
@@ -378,6 +407,7 @@ window.addEventListener('error', function(ev){
 });
 </script>
 
+<div id="appLoader"><!-- FIX #4: loading screen --><div class="alLogo" id="alLogo">TREN<b>DY</b></div><div class="alBar"></div></div>
 <div id="errBox" style="display:none;position:fixed;top:0;left:0;right:0;background:#c00;color:#fff;z-index:999;padding:8px;font-size:12px;white-space:pre-wrap"></div>
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg"><symbol id="iwa" viewBox="0 0 24 24"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.4-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.5 0 1.47 1.07 2.89 1.22 3.09.15.2 2.11 3.22 5.1 4.51.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.57-.09 1.76-.72 2-1.42.25-.7.25-1.3.18-1.42-.07-.12-.27-.2-.57-.35m-5.42 7.4h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.9-9.88a9.83 9.83 0 0 1 9.88 9.89c0 5.45-4.44 9.88-9.89 9.88m8.41-18.3A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.94L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.16-3.48-8.41z"/></symbol><symbol id="iig" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.6" fill="currentColor"/></symbol><symbol id="ifb" viewBox="0 0 24 24"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.6 1.6-1.6h1.3V4.8c-.6-.1-1.5-.2-2.4-.2-2.4 0-4 1.4-4 4.1V11H7.5v3H10v7z"/></symbol><symbol id="itk" viewBox="0 0 24 24"><path d="M14.5 3v10.6a4.3 4.3 0 1 1-2.5-3.9V3h2.5c.2 2.3 1.9 4.1 4.5 4.4v2.5c-1.7 0-3.2-.6-4.5-1.5z"/></symbol></svg>
 <style>
@@ -1062,7 +1092,10 @@ body.owner .dashBtn{display:inline-block!important}
     <input id="cName" placeholder="Category (MEN, KIDS...)"><button class="btn" onclick="addC()">+ ADD CATEGORY</button>
     <h5>COLLECTION MANAGER</h5>
     <select id="mCat" onchange="renderMCols()"></select>
-    <input id="mColName" placeholder="Collection (e.g. WESTERN)"><button class="btn" onclick="addColM()">+ ADD COLLECTION</button>
+    <input id="mColName" placeholder="Collection (e.g. WESTERN)">
+    <!-- FIX #1: optional image for a new collection -->
+    <span class="fieldLabel">Cover image (optional)</span><input type="file" id="mColImgFile" accept="image/jpeg,image/png,image/webp">
+    <div class="ratioHint">Recommended: 400x400px (square), max 500KB</div><div id="colImgProg" style="font-size:11px;color:var(--accent2);margin:2px 0"></div><button class="btn" onclick="addColM()">+ ADD COLLECTION</button>
     <div id="mColList"></div>
     <h5>SUB-TYPE MANAGER</h5>
     <select id="mCol" onchange="renderMSubs()"></select>
@@ -1257,6 +1290,7 @@ body.owner .dashBtn{display:inline-block!important}
       <label style="margin:6px 0"><input type="checkbox" id="crtIsRemoteArea"> This is a Remote Area rate for the province above</label>
       <button type="button" class="btn" id="crtSaveBtn" onclick="crtSaveRate()">💾 SAVE RATE</button>
       <button type="button" class="btn" id="crtCancelBtn" style="display:none;background:#eee;color:var(--ink)" onclick="crtCancelEdit()">✕ CANCEL EDIT</button>
+      <button type="button" class="btn" style="background:#eee;color:var(--ink)" onclick="srBackfill()">⬆ Sync existing rates to checkout (one time)</button><!-- FIX #7 -->
       <h5 style="margin-top:16px">SAVED RATES</h5>
       <div id="crtRateTable" style="overflow-x:auto"><p style="font-size:11px;color:var(--muted)">Open this tab while logged in to Cloud to load saved rates.</p></div>
     </div>
@@ -2339,14 +2373,29 @@ var CO_FIELDS=['coName','coPhone','coEmail','coAddress','coCity','coCityOther','
 var CO_BUSY=false,CO_PENDING=null,OS_LAST='',TRK_BUSY=false,TRK_FN_FAIL=false;
 function coEl(id){return document.getElementById(id)}
 function coClean(s,max){return String(s==null?'':s).replace(/[<>]/g,'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max)}
-function coCityProvince(city){for(var i=0;i<CO_CITIES.length;i++)if(CO_CITIES[i][0]===city)return CO_CITIES[i][1];return ''}
+function coCityProvince(city){var _s=srFind(city);if(_s&&_s.province)return _s.province;/* FIX #7 */for(var i=0;i<CO_CITIES.length;i++)if(CO_CITIES[i][0]===city)return CO_CITIES[i][1];return ''}
 /* Order ID: TRD + yymmdd + 6 random characters (no 0/O/1/I). The ID doubles as the Firestore document ID, and it is what a customer needs to track an order. */
 function coGenOrderNo(){var d=new Date();var A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';var buf=new Uint8Array(6);
 if(window.crypto&&window.crypto.getRandomValues)window.crypto.getRandomValues(buf);else for(var k=0;k<6;k++)buf[k]=Math.floor(Math.random()*256);
 var r='';for(var i=0;i<6;i++)r+=A.charAt(buf[i]%32);
 return 'TRD'+String(d.getFullYear()).slice(2)+pad(d.getMonth()+1)+pad(d.getDate())+'-'+r}
 function coWithTimeout(p,ms){return new Promise(function(res,rej){var t=setTimeout(function(){rej({code:'timeout'})},ms);p.then(function(v){clearTimeout(t);res(v)},function(e){clearTimeout(t);rej(e)})})}
-function coInitSelects(){
+/* FIX #7: city dropdown + delivery rate come from Firestore shippingRates, cached in SR (+localStorage) */
+var SR={list:[],loaded:false,sub:false};
+try{var _sc=JSON.parse(localStorage.getItem('trendyShippingRates')||'null');if(Array.isArray(_sc)&&_sc.length){SR.list=_sc;SR.loaded=true}}catch(e){}
+function srFind(city){var k=crtCityKey(city),best=null;SR.list.forEach(function(r){if((r.cityKey||crtCityKey(r.cityName))===k&&(!best||/leopard/i.test(r.courier||'')))best=r});return best}
+function srRender(){var w=coEl('cf-coCity'),sel=coEl('coCity');if(!w||!sel)return;w.classList.toggle('srLoading',!SR.loaded);
+var seen={},names=[];SR.list.forEach(function(r){var k=r.cityKey||crtCityKey(r.cityName);if(r.cityName&&!seen[k]){seen[k]=1;names.push(r.cityName)}});names.sort();
+if(!names.length){if(SR.loaded)coDeliveryNote('Please configure rates in dashboard — default delivery rate applies for now.','#B4670A');return}
+var cur=sel.value;sel.innerHTML='<option value="">Select city</option>'+names.map(function(n){return '<option value="'+escapeHtml(n)+'">'+escapeHtml(n)+'</option>'}).join('')+'<option value="Other">Other (type your city)</option>';
+if(cur&&(cur==='Other'||seen[crtCityKey(cur)]))sel.value=cur}
+function srEnsure(){srRender();if(SR.sub)return;
+if(!window.fbAnonReady||!window.fbListenShippingRates){setTimeout(function(){if(!SR.sub&&coEl('checkoutPage').classList.contains('open'))srEnsure()},800);return}
+SR.sub=true;window.fbListenShippingRates(function(list){SR.list=list||[];SR.loaded=true;try{localStorage.setItem('trendyShippingRates',JSON.stringify(SR.list))}catch(e){}srRender();try{if(coEl('checkoutPage').classList.contains('open')&&coEl('coProvince').value)coCalcDelivery()}catch(e){}},function(){SR.sub=false;SR.loaded=true;srRender();coDeliveryNote('Could not load delivery rates — default rate applies.','#B4670A')})}
+function srBackfill(){if(!window.fbLoggedIn||!window.fbSaveShippingRate){toast('Log in to Cloud first.');return}
+var l=CRT.cards||[];if(!l.length){toast('Open the Rate Card Manager while logged in so saved rates load first.');return}
+Promise.all(l.map(function(c){return window.fbSaveShippingRate({courier:c.courier,city:c.city,province:c.province,rate:c.rate,isRemoteArea:c.isRemoteArea})})).then(function(){toast('✅ '+l.length+' rates synced to checkout.')}).catch(function(){toast('⚠️ Sync failed — check Firestore rules for shippingRates.')})}
+function coInitSelects(){srEnsure();
 var c=coEl('coCity');if(!c.innerHTML)c.innerHTML='<option value="">Select city</option>'+CO_CITIES.map(function(x){return '<option value="'+escapeHtml(x[0])+'">'+escapeHtml(x[0])+'</option>'}).join('')+'<option value="Other">Other (type your city)</option>';
 var p=coEl('coProvince');if(!p.innerHTML)p.innerHTML='<option value="">Select province</option>'+CO_PROVINCES.map(function(x){return '<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>'}).join('')}
 function coCityChange(){var v=coEl('coCity').value;coEl('cf-coCityOther').style.display=(v==='Other')?'':'none';
@@ -2366,6 +2415,7 @@ var courier='Leopards'; /* checkout always quotes the default courier's rate; th
 var citySel=coEl('coCity').value,city=(citySel==='Other')?coEl('coCityOther').value.trim():citySel,province=coEl('coProvince').value;
 if(!city||!province){coDeliveryOverride=null;coDeliveryNote('');coRenderSummary();return}
 if(cartTotal()>=DELIVERY_THRESHOLD){coDeliveryOverride={rate:0,isFree:true,reason:'threshold'};coDeliveryNote('🎉 FREE DELIVERY — your order qualifies!','var(--accent2)');coRenderSummary();return}
+/* FIX #7: shippingRates lookup first */var _sr=srFind(city);if(_sr&&typeof _sr.deliveryRate==='number'){coDeliveryOverride={rate:_sr.deliveryRate,isFree:false,reason:'city'};coDeliveryNote('🚚 Delivery to '+city+': '+fmt(_sr.deliveryRate));coRenderSummary();return}
 if(!window.fbAnonReady||!window.fbListenDeliveryRateForCity){coDeliveryOverride=null;coDeliveryNote('');coRenderSummary();return}
 coDeliveryNote('⏳ Calculating delivery charge…');
 var cityKey=crtCityKey(city);
@@ -2790,7 +2840,7 @@ function renderCircles(){var cat=curCat();var box=document.getElementById('colCi
 if(!cat){box.innerHTML='';sw.innerHTML='';return}
 var html=cat.cols.map(function(co,i){var bg=co.url?('background-image:url('+co.url+')'):('background:'+GRAD[ALLG[i%6]]);
 var cnt=P.filter(function(p){return p.col===co.name}).length;
-return '<div class="ccol'+(activeCol===co.name?' on':'')+'" onclick="openCollectionPage(\''+co.name+'\')"><div class="ccirc" style="'+bg+'"><div class="cin">'+(co.e||co.name.charAt(0))+'</div></div><span>'+co.name+'</span><em>'+cnt+' items</em></div>'}).join('');
+return '<div class="ccol'+(activeCol===co.name?' on':'')+'" onclick="openCollectionPage(\''+co.name+'\')"><div class="ccirc" style="'+bg+'"><div class="cin">'+(co.imageUrl?'<img class="ccImg" src="'+escapeHtml(co.imageUrl)+'" alt="'+escapeHtml(co.name)+' collection" loading="lazy" decoding="async" data-e="'+escapeHtml(co.e||co.name.charAt(0))+'" onerror="this.parentNode.textContent=this.getAttribute(\'data-e\')">':(co.e||co.name.charAt(0)))+'</div></div><span>'+co.name+'</span><em>'+cnt+' items</em></div>'}).join('');
 html+='<div class="ccol" onclick="quickAddCol()"><div class="ccirc" style="background:var(--panel);border:2px dashed var(--accent)"><div class="cin" style="color:var(--accent);font-size:26px">+</div></div><span>ADD</span><em>unlimited</em></div>';
 box.innerHTML=html;
 if(activeCol){var co=cat.cols.find(function(x){return x.name===activeCol});
@@ -2886,12 +2936,12 @@ if(cur)sel.value=cur;renderMCols()}
 function mCatObj(){return CATS.find(function(c){return c.name===document.getElementById('mCat').value})}
 function renderMCols(){var c=mCatObj();var box=document.getElementById('mColList');
 if(!c){box.innerHTML='';renderMColSel();return}
-box.innerHTML=c.cols.map(function(co,i){return '<div class="vrow"><span>'+co.name+'</span><span style="display:flex;align-items:center;gap:4px"><label style="display:flex;align-items:center;gap:3px;font-size:10px;margin:0"><input type="checkbox" '+(co.needsSize!==false?'checked':'')+' onchange="togColSize('+i+',this.checked)"> Size</label><button onclick="renCol('+i+')">✎</button><button onclick="delCol('+i+')">🗑</button></span></div>'}).join('');
+box.innerHTML=c.cols.map(function(co,i){return '<div class="vrow"><span style="display:flex;align-items:center;gap:8px">'+colPrev(co)+co.name+'</span><span style="display:flex;align-items:center;gap:4px">'+colImgBtns(i,co)+'<label style="display:flex;align-items:center;gap:3px;font-size:10px;margin:0"><input type="checkbox" '+(co.needsSize!==false?'checked':'')+' onchange="togColSize('+i+',this.checked)"> Size</label><button onclick="renCol('+i+')">✎</button><button onclick="delCol('+i+')">🗑</button></span></div>'}).join('');
 renderMColSel()}
 function togColSize(i,on){var c=mCatObj();if(!c)return;c.cols[i].needsSize=on;render()}
 function addColM(){var c=mCatObj();if(!c)return;var n=document.getElementById('mColName').value.trim().toUpperCase();
 if(!n){toast('Enter a collection name.');return}
-c.cols.push({id:nextCol++,name:n,e:'🛍',url:'',subs:[],needsSize:true});
+/* FIX #1: optional image on new collection */var newCo={id:nextCol++,name:n,e:'🛍',url:'',imageUrl:'',imagePublicId:'',subs:[],needsSize:true};c.cols.push(newCo);var nf=document.getElementById('mColImgFile'),nfile=nf&&nf.files&&nf.files[0];if(nfile){setTimeout(function(){colImgUpload(newCo,nfile)},0);nf.value=''}
 document.getElementById('mColName').value='';render();afterPersistToast(persist,'Collection added!')}
 function renCol(i){var c=mCatObj();if(!c)return;var co=c.cols[i];
 var n=prompt('Name:',co.name);if(n===null)return;
@@ -3863,6 +3913,11 @@ var courierFormats={
 'Trax':[['Order ID','orderId'],['Customer Name','name'],['Phone','phone'],['Address','address'],['City','city'],['COD Amount','cod'],['Items','items']],
 'Custom':[['Order ID','orderId'],['Customer Name','name'],['Phone','phone'],['Email','email'],['Address','address'],['City','city'],['Items','items'],['Payment Type','payType'],['Total','total'],['COD Amount','cod'],['Date','date'],['Tracking ID','tracking']]
 };
+/* FIX #3: "Last Status Change" column on every CSV format */
+courierFields.lastChange=function(o){return o.lastStatusChange?new Date(o.lastStatusChange).toLocaleString():''};
+Object.keys(courierFormats).forEach(function(k){courierFormats[k].push(['Last Status Change','lastChange'])});
+function stStamp(o,status,extra){var now=new Date().toISOString();extra=extra||{};extra.status=status;extra.lastStatusChange=now;extra.statusHistory=(Array.isArray(o&&o.statusHistory)?o.statusHistory:[]).concat([{status:status,at:now}]);return extra}
+function ordAnimate(){var l=document.getElementById('ordersList');if(!l)return;l.classList.add('ordAnim');setTimeout(function(){l.classList.remove('ordAnim')},450)}
 function courierCsvCell(v){if(v===null||v===undefined)v='';
 if(typeof v==='string'&&/^[=+\-@\t\r]/.test(v))v="'"+v; /* neutralise spreadsheet-formula injection from customer-typed text */
 v=String(v).replace(/"/g,'""');return /[",\r\n]/.test(v)?'"'+v+'"':v}
@@ -4111,7 +4166,7 @@ if(!confirm('Cancel this order? Items will be added back to inventory.'))return;
 (o.items||[]).forEach(function(it){var p=P.find(function(x){return x.id===it.id});if(p)p.stock=(p.stock||0)+it.qty});
 persist();render();
 o.status='Cancelled';
-if(window.fbUpdateOrderStatus)window.fbUpdateOrderStatus(id,'Cancelled');
+if(window.fbUpdateOrderStatus)window.fbUpdateOrderStatus(id,'Cancelled',stStamp(o,'Cancelled',{}));/* FIX #3 */
 renderOrdersDash();
 toast('Order cancelled — items restocked.')}
 function archiveOrder(id){var o=ORDERS_CACHE.find(function(x){return x.id===id});if(!o)return;
@@ -4163,7 +4218,7 @@ if(!reason){toast('Select a return reason.');return}
 if(reason==='Other'&&!note){toast('Please describe the reason.');return}
 if(reason!=='Other')note='';
 if(!window.fbUpdateOrderStatus){toast('⚠️ Cloud not ready yet — the status was not changed. Please try again shortly.');return}
-var extra={returnReason:reason,returnNote:note,returnedAt:new Date().toISOString(),returnCount:(Number(o.returnCount)||0)+1};
+var extra=stStamp(o,'Returned',{returnReason:reason,returnNote:note,returnedAt:new Date().toISOString(),returnCount:(Number(o.returnCount)||0)+1});/* FIX #3 */
 var btn=document.getElementById('returnConfirmBtn');btn.disabled=true;
 window.fbUpdateOrderStatus(id,'Returned',extra).then(function(){
 o.status='Returned';Object.keys(extra).forEach(function(k){o[k]=extra[k]});
@@ -4173,12 +4228,13 @@ closeReturnModal()
 function retryDelivery(id){var o=ORDERS_CACHE.find(function(x){return x.id===id});if(!o)return;
 if(!confirm('Retry delivery for '+(o.orderNumber||('#'+o.id))+'? Its status will go back to Confirm.'))return;
 if(!window.fbUpdateOrderStatus){toast('⚠️ Cloud not ready yet — the status was not changed. Please try again shortly.');return}
-var extra={retriedAt:new Date().toISOString()};
+var extra=stStamp(o,'Confirm',{retriedAt:new Date().toISOString()});/* FIX #3 */
 window.fbUpdateOrderStatus(id,'Confirm',extra).then(function(){
 o.status='Confirm';o.retriedAt=extra.retriedAt;renderOrdersDash();toast('Order moved back to Confirm — it will appear in the next courier CSV.')
 }).catch(function(e){dbgWarn('Retry failed:',e);toast('⚠️ Failed to update the order — check your connection and try again.')})}
-function setOrderStatus(id,status){if(String(status).toLowerCase()==='returned'){openReturnModal(id);return}var o=ORDERS_CACHE.find(function(x){return x.id===id});if(o)o.status=status;
-if(window.fbUpdateOrderStatus)window.fbUpdateOrderStatus(id,status);
+function setOrderStatus(id,status){if(String(status).toLowerCase()==='returned'){openReturnModal(id);return}/* FIX #3: optimistic move + history + revert on failure */var o=ORDERS_CACHE.find(function(x){return x.id===id});var prevSt=o?{status:o.status,lastStatusChange:o.lastStatusChange,statusHistory:o.statusHistory}:null;var stx=o?stStamp(o,status,{}):{};if(o){o.status=status;o.lastStatusChange=stx.lastStatusChange;o.statusHistory=stx.statusHistory}
+ordAnimate();var stRevert=function(){if(o&&prevSt)Object.assign(o,prevSt);renderOrdersDash();toast('⚠️ Could not update the order status — please check your connection and try again. The change was reverted.')};
+if(window.fbUpdateOrderStatus)window.fbUpdateOrderStatus(id,status,stx).catch(stRevert);else stRevert();
 renderOrdersDash()}
 function printBill(id){var o=ORDERS_CACHE.find(function(x){return x.id===id});if(!o){toast('Order not found.');return}
 var rows=(o.items||[]).map(function(it){return '<tr><td>'+it.name+(it.size?' ('+it.size+')':'')+'</td><td style="text-align:center">'+it.qty+'</td><td style="text-align:right">'+fmt(it.price)+'</td><td style="text-align:right">'+fmt(it.price*it.qty)+'</td></tr>'}).join('');
@@ -4698,7 +4754,7 @@ document.getElementById('legalBody').textContent=body&&body.trim()?body:'This pa
 document.getElementById('legalModal').classList.add('open')}
 function closeLegal(){document.getElementById('legalModal').classList.remove('open')}
 function closePolicy(){document.getElementById('policyModal').classList.remove('open')}
-function waClick(){if(window.WA_CS_DIGITS){window.open('https://wa.me/'+window.WA_CS_DIGITS,'_blank');return}var ph=(normalizePhonePK(S.phone).valid?normalizePhonePK(S.phone).value:S.phone.replace(/[^0-9]/g,''));window.open('https://wa.me/'+ph,'_blank')}
+function waClick(){if(window.WA_CS_DIGITS){window.open('https://wa.me/'+window.WA_CS_DIGITS+'?text=Hello!%20I%20want%20to%20order%20from%20TRENDY','_blank','noopener,noreferrer')/* FIX #2 */;return}var ph=(normalizePhonePK(S.phone).valid?normalizePhonePK(S.phone).value:S.phone.replace(/[^0-9]/g,''));window.open('https://wa.me/'+ph,'_blank')}
 function saveS(){S.name=document.getElementById('sName').value.trim()||S.name;
 S.tag=document.getElementById('sTag').value.trim()||S.tag;
 S.phone=document.getElementById('sPhone').value.trim()||S.phone;
@@ -4729,11 +4785,14 @@ function renderTicker(){var el=document.getElementById('tick');if(!el)return;
 var ship=(DELIVERY_THRESHOLD>0)?('FREE DELIVERY ON ORDERS ABOVE Rs. '+Number(DELIVERY_THRESHOLD).toLocaleString()):'FREE DELIVERY ON ALL ORDERS';
 var t='';for(var i=0;i<4;i++){t+='<span>'+escapeHtml(S.name)+' — '+escapeHtml(S.tag)+'</span><span>'+ship+'</span>'}
 el.innerHTML=t}
+/* FIX #5: footer shows the Customer Service number (settings/public), falling back to the store phone */
+function footPhone(){return window.WA_CS_DIGITS?(window.WA_CS||('+'+window.WA_CS_DIGITS)):S.phone}
+function footWaLink(){var d=window.WA_CS_DIGITS;return d?'<a class="fsoc" href="https://wa.me/'+d+'?text=Hello!%20I%20want%20to%20order%20from%20TRENDY" target="_blank" rel="noopener noreferrer" title="Chat with us on WhatsApp"><i class="wap"><svg><use href="#iwa"/></svg></i>WhatsApp</a>':''}
 function renderBranding(){document.getElementById('logoH').innerHTML=logoHTML(S.name);
 document.getElementById('logoF').innerHTML=logoHTML(S.name);
 renderTicker();
-document.getElementById('footSoc').innerHTML='<a class="fsoc" onclick="window.open(\'https://instagram.com/'+(S.ig||'').replace('@','')+'\',\'_blank\')"><i class="ig"><svg><use href="#iig"/></svg></i>'+S.ig+'</a><a class="fsoc" onclick="window.open(\'https://facebook.com/'+(S.fb||'').replace('/','')+'\',\'_blank\')"><i class="fb"><svg><use href="#ifb"/></svg></i>'+S.fb+'</a><a class="fsoc" onclick="window.open(\'https://tiktok.com/@'+(S.tt||'').replace('@','')+'\',\'_blank\')"><i class="tk"><svg><use href="#itk"/></svg></i>'+S.tt+'</a>';
-document.getElementById('contactStrip').innerHTML='📞 <b>'+S.phone+'</b> ('+S.hours+') • ✉️ <b>'+S.email+'</b> • 🌐 <b>'+S.web+'</b>';
+document.getElementById('footSoc').innerHTML='<a class="fsoc" onclick="window.open(\'https://instagram.com/'+(S.ig||'').replace('@','')+'\',\'_blank\')"><i class="ig"><svg><use href="#iig"/></svg></i>'+S.ig+'</a><a class="fsoc" onclick="window.open(\'https://facebook.com/'+(S.fb||'').replace('/','')+'\',\'_blank\')"><i class="fb"><svg><use href="#ifb"/></svg></i>'+S.fb+'</a><a class="fsoc" onclick="window.open(\'https://tiktok.com/@'+(S.tt||'').replace('@','')+'\',\'_blank\')"><i class="tk"><svg><use href="#itk"/></svg></i>'+S.tt+'</a>'+footWaLink();
+document.getElementById('contactStrip').innerHTML='📞 <b>'+footPhone()+'</b> ('+S.hours+') • ✉️ <b>'+S.email+'</b> • 🌐 <b>'+S.web+'</b>';
 document.title=S.name+' — New Era Garments'}
 (function(){try{
 document.getElementById('sName')&&(document.getElementById('sName').value=S.name);
@@ -5499,13 +5558,13 @@ else if(document.getElementById('drawer').classList.contains('open'))closeD()});
 var WA_CS='';
 try{WA_CS=localStorage.getItem('trendyWaCS')||''}catch(e){}
 function waApply(){var a=document.getElementById('waFloat');if(!a)return;
-var d=String(WA_CS||'').replace(/\D/g,'');window.WA_CS_DIGITS=d.length>=8?d:'';
+var d=String(WA_CS||'').replace(/\D/g,'');window.WA_CS_DIGITS=d.length>=8?d:'';try{renderBranding()}catch(e){}/* FIX #5: refresh footer when the Customer Service number arrives */
 if(!window.WA_CS_DIGITS){a.style.display='none';return}
-a.href='https://wa.me/'+window.WA_CS_DIGITS;a.style.display='flex'}
+/* FIX #2: universal wa.me link */a.href='https://wa.me/'+window.WA_CS_DIGITS+'?text=Hello!%20I%20want%20to%20order%20from%20TRENDY';a.target='_blank';a.rel='noopener noreferrer';a.title='Chat with us on WhatsApp';a.style.display='flex'}
 function waSetNumber(n){WA_CS=String(n||'');try{localStorage.setItem('trendyWaCS',WA_CS)}catch(e){}waApply()}
 (function(){var a=document.getElementById('waFloat');if(a)a.addEventListener('click',function(e){
 if(/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent))return; /* phones: let wa.me open the WhatsApp app */
-e.preventDefault();window.open('https://web.whatsapp.com/send?phone='+window.WA_CS_DIGITS,'_blank','noopener')});waApply()})();
+/* FIX #2: web.whatsapp.com override removed — wa.me opens the app on mobile and WhatsApp Web on desktop */});waApply()})();
 /* Owner session: keep the public copy in step with the bot settings so the button works without re-saving. */
 var WA_SYNCED=false;
 function waAutoSync(){if(WA_SYNCED||!window.fbLoggedIn||!window.fbGetBotSettings||!window.fbSavePublicSettings)return;WA_SYNCED=true;
@@ -5533,7 +5592,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/fireba
 import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, deleteDoc, collection, collectionGroup, getDocs, query, where, limit, writeBatch, onSnapshot, serverTimestamp, arrayRemove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
-import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 const firebaseConfig = {
   apiKey: "AIzaSyAayoyDG78644JN97soEa4mK-ygxxN6Bz0",
   authDomain: "trendy-store-38a8b.firebaseapp.com",
@@ -6016,6 +6075,16 @@ window.fbListAbandonedCarts = function(){
 // db/auth/cloudFns, which are already initialized synchronously above —
 // they do not need to wait for signInAnonymously to resolve). Signal this
 // explicitly rather than making the rest of the app guess with a timeout.
+/* FIX #7: shippingRates collection {cityName,province,courier,deliveryRate,isRemote} — dual-written from the Rate Card Manager */
+function srId(c,city){var k=function(x){return String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'')};return k(c)+'__'+k(city)}
+window.fbSaveShippingRate=function(card){return setDoc(doc(db,"shippingRates",srId(card.courier,card.city)),{cityName:card.city,cityKey:String(card.city||'').toLowerCase().replace(/[^a-z0-9]/g,''),province:card.province||'',courier:card.courier,deliveryRate:Number(card.rate)||0,isRemote:!!card.isRemoteArea,updatedAt:new Date().toISOString()},{merge:true})};
+window.fbDeleteShippingRate=function(card){return deleteDoc(doc(db,"shippingRates",srId(card.courier,card.city)))};
+window.fbListenShippingRates=function(cb,errCb){try{return onSnapshot(collection(db,"shippingRates"),function(s){var l=[];s.forEach(function(d){l.push(d.data())});cb(l)},function(e){dbg('shippingRates listen err',e);if(errCb)errCb(e)})}catch(e){if(errCb)errCb(e)}};
+(function(){var s0=window.fbSaveRateCard,d0=window.fbDeleteRateCard;
+window.fbSaveRateCard=function(c){return s0(c).then(function(){return window.fbSaveShippingRate(c)})};
+window.fbDeleteRateCard=function(c){return d0(c).then(function(){return window.fbDeleteShippingRate(c).catch(function(){})})}})();
+/* FIX #1: storage delete + collection image helper */
+window.fbDeleteStoragePath=function(p){return deleteObject(storageRef(storage,p))};
 window.fbReady = true;
 window.dispatchEvent(new Event('fbReady'));
 </script>
@@ -6247,5 +6316,32 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
+<script>
+/* FIX #1: collection cover images (Firebase Storage: collections/{name}/cover.jpg, max 500KB, 200-1024px) */
+function colPrev(co){return co.imageUrl?'<img src="'+escapeHtml(co.imageUrl)+'" alt="" style="width:50px;height:50px;border-radius:50%;object-fit:cover;flex-shrink:0">':'<span style="width:50px;height:50px;border-radius:50%;background:#EEE;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px">'+escapeHtml(co.e||'🛍')+'</span>'}
+function colImgBtns(i,co){return '<button type="button" title="Upload / change image" onclick="colImgPick('+i+')">📷</button>'+(co.imageUrl?'<button type="button" title="Remove image" onclick="colImgRemove('+i+')">✖</button>':'')}
+function colImgPick(i){var c=mCatObj();if(!c||!c.cols[i])return;var f=document.createElement('input');f.type='file';f.accept='image/jpeg,image/png,image/webp';f.onchange=function(){if(f.files[0])colImgUpload(c.cols[i],f.files[0])};f.click()}
+function colImgSay(t){var e=document.getElementById('colImgProg');if(e)e.textContent=t||''}
+function colCompress(img){var w=img.naturalWidth,h=img.naturalHeight,c=document.createElement('canvas');c.width=w;c.height=h;var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0);
+return new Promise(function(res,rej){var q=.9;(function t(){c.toBlob(function(b){if(!b)return rej(new Error('Compression failed'));if(b.size<=512000||q<=.3)res(b);else{q-=.1;t()}},'image/jpeg',q)})()})}
+async function colImgUpload(co,file){
+if(!/^image\/(jpeg|png|webp)$/.test(file.type)){toast('Only JPG, PNG or WebP images are allowed.');return}
+if(!window.fbLoggedIn||!window.fbUploadProductImage){toast('Log in to Cloud first — image upload needs your owner login.');return}
+try{colImgSay('⏳ Checking image…');var img=await pimgLoadImage(file),w=img.naturalWidth,h=img.naturalHeight;
+if(w<200||h<200){colImgSay('');toast('Image too small — minimum 200x200px (yours: '+w+'x'+h+').');return}
+if(w>1024||h>1024){colImgSay('');toast('Image too large — maximum 1024x1024px (yours: '+w+'x'+h+').');return}
+var blob=await colCompress(img);if(blob.size>512000){colImgSay('');toast('Image is still over 500KB after compression — please use a simpler image.');return}
+var path='collections/'+String(co.name).replace(/[\/\\#?\[\]*]/g,'_')+'/cover.jpg';
+var url=await window.fbUploadProductImage(blob,path,function(f){colImgSay('⏳ Uploading… '+Math.round(f*100)+'%')});
+co.imageUrl=url;co.imagePublicId=path;colImgSay('✅ Image uploaded ('+Math.round(blob.size/1024)+' KB)');render();afterPersistToast(persist,'Collection image saved.')
+}catch(e){dbgWarn('Collection image upload failed:',e);colImgSay('');pinkToast('Network error. Please check your connection.');toast('⚠️ Image upload failed: '+(e&&e.message?e.message:'please try again')+'.')}}
+function colImgRemove(i){var c=mCatObj();if(!c||!c.cols[i])return;var co=c.cols[i];if(!confirm('Remove the image for '+co.name+'?'))return;
+var p=co.imagePublicId;co.imageUrl='';co.imagePublicId='';if(p&&window.fbDeleteStoragePath)window.fbDeleteStoragePath(p).catch(function(){});
+render();afterPersistToast(persist,'Image removed (emoji fallback is shown).')}
+/* FIX #4: hide loader once DOM + first Firebase snapshots are ready, 500ms fade */
+(function(){var t0=Date.now(),L=document.getElementById('appLoader'),lg=document.getElementById('alLogo');if(lg&&window.S)lg.innerHTML=logoHTML(S.name);
+var iv=setInterval(function(){var cs=window.CLOUD_SEEN||{};var ok=document.readyState!=='loading'&&((cs.products&&cs.config)||Date.now()-t0>6000);if(!ok&&Date.now()-t0<8000)return;clearInterval(iv);
+document.documentElement.classList.remove('app-loading');if(L){L.classList.add('hide');setTimeout(function(){L.remove()},520)}},100)})();
+</script>
 </body>
 </html>
