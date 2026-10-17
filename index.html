@@ -3024,7 +3024,7 @@ html+='<a onclick="openTrack()">TRACK ORDER</a>';
 document.getElementById('deskNav').innerHTML=html}
 function featP(id){var i=P.findIndex(function(x){return x.id===id});if(i<0)return;var it=P.splice(i,1)[0];P.unshift(it);render();toast('Featured!')}
 function dotsHTML(p){
-var validImages=(p.vars||[]).filter(function(v){return v&&v.url&&v.url.trim().length>0;});
+var validImages=(p.vars||[]).filter(function(v){return v&&v.url&&v.url.trim().length>0;}).slice(0,lbMaxImages()); /* FIX #1: Image Limit — dots follow the dashboard 'Max images per card' setting */
 var dotCount=validImages.length;
 if(dotCount<2)return '';
 var h='';for(var i=0;i<dotCount;i++)h+='<button class="cdot'+(i===0?' on':'')+'" onclick="event.stopPropagation();dotGo(this)"></button>';
@@ -3045,7 +3045,7 @@ var needs=productNeedsSize(p)&&p.sz&&p.sz.length&&p.sz[0]!=='Free'&&p.sz[0]!=='U
 if(needs){openProduct(id,0);toast('Choose your size, then tap Add to Cart.');return}
 selSize='';addCart(id)}
 function bcardHTML(p){var sb=stockBadge(p);
-var slides=p.vars.map(function(v,i){var x=vis(v);return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+(sb.out?';filter:grayscale(.6);opacity:.6':'')+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
+var slides=p.vars.slice(0,lbMaxImages()).map(function(v,i){var x=vis(v);/* FIX #1: Image Limit — home cards show at most N slides */return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+(sb.out?';filter:grayscale(.6);opacity:.6':'')+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
 var dots=dotsHTML(p);
 return '<div class="bcard premium-grid-card" onclick="openProduct('+p.id+')"><div class="ph cwrap"><div class="cgal" onscroll="updDots(this)">'+slides+'</div>'+(dots?'<div class="cdots">'+dots+'</div>':'')+(sb.text?'<span class="badge'+sb.cls+'">'+sb.text+'</span>':'')+'<button class="adm" style="right:10px" onclick="event.stopPropagation();editP('+p.id+')">✎</button><button class="adm" style="right:44px" onclick="event.stopPropagation();delP('+p.id+')">🗑</button>'+cardActs(p,sb)+'</div><div class="binfo"><h3>'+escapeHtml(p.name)+'</h3><p>'+fmt(p.price)+'</p></div></div>'}
 var halfW=0; /* legacy, unused */
@@ -3160,7 +3160,7 @@ if(activeGal){activeGal.classList.remove('dragging');activeGal=null}
 },{passive:true});
 })();
 function pcardHTML(p){var sb=stockBadge(p);
-var slides=p.vars.map(function(v,i){var x=vis(v);return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
+var slides=p.vars.slice(0,lbMaxImages()).map(function(v,i){var x=vis(v);/* FIX #1: Image Limit — home cards show at most N slides */return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
 var dots=dotsHTML(p);
 return '<div class="pcard premium-grid-card" onclick="openProduct('+p.id+')"><div class="pmedia">'+(sb.text?'<span class="badge'+sb.cls+'">'+sb.text+'</span>':'')+'<button class="adm" style="right:10px" onclick="event.stopPropagation();editP('+p.id+')">✎</button><button class="adm" style="right:44px" onclick="event.stopPropagation();delP('+p.id+')">🗑</button><button class="adm" style="right:78px" onclick="event.stopPropagation();featP('+p.id+')">⭐</button><div class="cwrap"><div class="cgal" onscroll="updDots(this)" style="'+(sb.out?'filter:grayscale(.6);opacity:.6':'')+'">'+slides+'</div><div class="cdots">'+dots+'</div></div>'+cardActs(p,sb)+'</div><div class="pinfo"><h4>'+escapeHtml(p.name)+'</h4><p class="pprice">'+fmt(p.price)+'</p></div></div>'}
 var curPid=null;
@@ -4979,12 +4979,16 @@ window.fbLogin(email,pass,function(ok,err){
 if(ok){showPinStep?.()}
 else{var m3=document.getElementById('fbMsg');if(m3)m3.textContent='Login failed: incorrect email/password.'}})}
 function cloudLogout(){window.fbLogout?.();var e=document.getElementById('fbEmail');if(e)e.value='';var p=document.getElementById('fbPass');if(p)p.value='';try{localStorage.removeItem('ownerSession')}catch(err){}document.body.classList.remove('owner');window.DEBUG_MODE=false;window.location.reload()}
+/* FIX #2: Session Persistence — badge: checking while auth restores, green while signed in, 'Offline' (not logout) when the connection drops */
+function updateCloudBadge(loggedIn){var badge=document.getElementById('cloudSyncBadge');if(!badge)return;
+if(window.isAuthInitializing){badge.textContent='⏳ CHECKING…';badge.style.background='#eee';badge.style.color='#777';return}
+if(loggedIn&&navigator.onLine===false){badge.textContent='⚠️ OFFLINE — SYNCING WHEN BACK ONLINE';badge.style.background='rgba(180,103,10,.12)';badge.style.color='#B4670A'}
+else if(loggedIn){badge.textContent='☁️ CLOUD SYNC: ON';badge.style.background='rgba(0,181,137,.12)';badge.style.color='#1B8A4C'}
+else{badge.textContent='⚠️ LOCAL ONLY — LOG IN TO SYNC';badge.style.background='rgba(240,6,127,.1)';badge.style.color='var(--accent)'}}
+window.addEventListener('online',function(){updateCloudBadge(window.fbLoggedIn)});
+window.addEventListener('offline',function(){updateCloudBadge(window.fbLoggedIn)});
 window.onFbAuthChange=function(loggedIn){var loginBox=document.getElementById('fbLoginBox');var inBox=document.getElementById('fbLoggedInBox');var st=document.getElementById('fbStatus');
-var badge=document.getElementById('cloudSyncBadge');
-if(badge){
-if(loggedIn){badge.textContent='☁️ CLOUD SYNC: ON';badge.style.background='rgba(0,181,137,.12)';badge.style.color='#1B8A4C'}
-else{badge.textContent='⚠️ LOCAL ONLY — LOG IN TO SYNC';badge.style.background='rgba(240,6,127,.1)';badge.style.color='var(--accent)'}
-}
+updateCloudBadge(loggedIn); /* FIX #2: Session Persistence — badge logic moved to updateCloudBadge() */
 if(!loginBox||!inBox)return;
 loginBox.style.display=loggedIn?'none':'block';
 inBox.style.display=loggedIn?'block':'none';
@@ -5638,7 +5642,7 @@ start();
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, deleteDoc, collection, collectionGroup, getDocs, query, where, limit, writeBatch, onSnapshot, serverTimestamp, arrayRemove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 const firebaseConfig = {
@@ -5652,18 +5656,25 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
+/* FIX #2: Session Persistence — modular SDK (v12) equivalent of firebase.auth().setPersistence(LOCAL): session survives refresh/restart */
+const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(function(e){dbg('auth persistence err', e)});
+/* FIX #2: Session Persistence — true until Firebase finishes restoring the saved session */
+window.isAuthInitializing = true;
 const OWNER_EMAIL = "official4mughal@gmail.com";
 window.fbLoggedIn = false;
 window.fbAnonReady = false;
 window.CLOUD_SEEN = {};   // set to true per collection when its FIRST snapshot arrives (see persist() guard in the main script)
 onAuthStateChanged(auth, function(user){
+  window.isAuthInitializing = false; /* FIX #2: Session Persistence — initial auth state has now resolved */
   window.fbLoggedIn = !!(user && !user.isAnonymous);
   if(user && !user.isAnonymous) window.fbAnonReady = true;
   if(user) window.fbAnonReady = true;
+  /* FIX #2: Session Persistence — anonymous sign-in ONLY when no session exists. Previously it ran unconditionally at startup and could overwrite the owner's restored session. */
+  if(!user) authPersistenceReady.then(function(){ return signInAnonymously(auth); }).catch(function(e){dbg('anon auth err', e)});
   if(window.onFbAuthChange) window.onFbAuthChange(window.fbLoggedIn);
 });
 // Anonymous sign-in so every visitor can save their own customer profile/coupons
-signInAnonymously(auth).catch(function(e){dbg('anon auth err', e)});
+/* FIX #2: Session Persistence — unconditional startup signInAnonymously removed (now handled inside onAuthStateChanged above) */
 
 var AUTH_ERROR_MESSAGES = {
   'auth/email-already-in-use': 'This email is already registered. Please login instead.',
@@ -5684,7 +5695,7 @@ window.fbLogin = async function(email, pass, cb){
     cb(false, authMsg);
   }
 };
-window.fbLogout = function(){ signOut(auth); signInAnonymously(auth) };
+window.fbLogout = function(){ signOut(auth); /* FIX #2: Session Persistence — onAuthStateChanged signs in anonymously after sign-out */ };
 
 // ---- Products collection (one document per product) ----
 window.fbSaveProducts = function(products){
