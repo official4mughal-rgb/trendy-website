@@ -6395,6 +6395,33 @@ document.documentElement.classList.remove('app-loading');if(L){L.classList.add('
 @media (min-width:768px){
   .hs-slide{background-position:center top}
 }
+/* SURGICAL: Hero image fix + Shop button position (desktop only) */
+@media (min-width:768px){
+  /* SURGICAL: Hero image fix */
+  .hs-slide{
+    background-size:cover;
+    background-position:center center;
+    /* SURGICAL: Shop button position - reserve a 72px strip under the image */
+    padding-bottom:72px;
+    background-origin:content-box;
+    background-clip:content-box;
+    max-height:452px;
+  }
+  .hs-slide::after{bottom:72px}
+  /* SURGICAL: Shop button position - below the image, transparent */
+  .hs-slide>.hs-btn{
+    position:absolute;
+    left:50%;
+    bottom:16px;
+    transform:translateX(-50%);
+    margin-top:0;
+    background:transparent;
+    color:#1A1A1A;
+    border:2px solid #1A1A1A;
+  }
+  .hs-slide>.hs-btn:hover{background:#1A1A1A;color:#fff}
+  .hs-dots{bottom:88px}
+}
 </style>
 </body>
 </html>
