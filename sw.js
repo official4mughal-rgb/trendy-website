@@ -1,5 +1,5 @@
 /* TRENDY service worker. Bump CACHE_VERSION on every deploy. */
-var CACHE_VERSION = 'v1.0.4';
+var CACHE_VERSION = 'v1.0.5';
 var CACHE_NAME = 'trendy-' + CACHE_VERSION;
 var PRECACHE = ['/', '/manifest.json', '/icon-192.png'];
 
@@ -66,7 +66,7 @@ function networkFirst(req) {
   }).catch(function (err) {
     console.warn('[SW] Network failed, trying cache:', req.url, err);
     return caches.match(req).then(function (hit) {
-      return hit || caches.match('/') || offlineResponse();
+      return hit || caches.match('/');
     }).then(function (r) { return r || offlineResponse(); });
   });
 }
@@ -91,12 +91,13 @@ function cacheFirst(req) {
 
 self.addEventListener('fetch', function (event) {
   var req = event.request;
+
+  /* ignore non-GET requests */
   if (req.method !== 'GET') return;
 
   var url = new URL(req.url);
 
-  /* NEVER CACHE: anything cross-origin (Firebase, Google APIs, gstatic, TikTok,
-     Facebook, wa.me) is left to the browser's network, untouched */
+  /* NEVER CACHE: cross-origin requests (Firebase, Google APIs, TikTok, Facebook, wa.me) */
   if (url.origin !== self.location.origin) return;
 
   /* NEVER CACHE: the service worker itself */

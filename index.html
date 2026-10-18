@@ -5317,20 +5317,22 @@ function pdMedia(v,p,thumb,lazy){
 if(v&&isU(v.url)){var src=thumb?((v.srcset&&v.srcset[400])||v.url):((v.srcset&&v.srcset[1200])||v.url);
 return '<img src="'+escapeHtml(src)+'" alt="'+escapeHtml(p.name)+'" draggable="false" decoding="async"'+((thumb||lazy)?' loading="lazy"':'')+'>'}
 return '<div class="pdPh" style="background:'+(GRAD[(v&&v.g)||'g1']||GRAD.g1)+'"><span>'+(p.e||'')+'</span></div>'}
+/* FIX: Remove placeholder from product gallery — only designs that have a real uploaded image URL are shown; the product page ignores the 'Max images per card' setting. If a product has no uploaded image at all, the original list is kept so the page still has something to show. */
+function pdGallery(p){var all=p.vars||[];var real=all.filter(function(v){return v&&isU(v.url)});return real.length?real:all}
 function pdNeedsSize(p){return !!(productNeedsSize(p)&&p.sz&&p.sz.length&&p.sz[0]!=='Free'&&p.sz[0]!=='Unstitched')}
 function openProduct(id,idx,noPush){
 var p=P.find(function(x){return Number(x.id)===Number(id)});if(!p){toast('Product not found.');return}
-PD.pid=Number(p.id);PD.idx=Math.max(0,Math.min(idx||0,(p.vars||[]).length-1));PD.qty=1;PD.size='';PD.needs=pdNeedsSize(p);
+PD.pid=Number(p.id);var gal=pdGallery(p);/* FIX: Remove placeholder from product gallery */PD.idx=Math.max(0,Math.min(idx||0,gal.length-1));PD.qty=1;PD.size='';PD.needs=pdNeedsSize(p);
 var sb=stockBadge(p),disc=colDiscountInfo(p),d=p.details||{};
 var rows=PD_DETAILS.filter(function(x){return d[x[0]]&&String(d[x[0]]).trim()});
-var thumbs=(p.vars||[]).map(function(v,i){return '<button type="button" class="pdThumb'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="View image '+(i+1)+'">'+pdMedia(v,p,true)+'</button>'}).join('');
+var thumbs=gal.map(function(v,i){/* FIX: Remove placeholder from product gallery */return '<button type="button" class="pdThumb'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="View image '+(i+1)+'">'+pdMedia(v,p,true)+'</button>'}).join('');
 var details=rows.length?'<div class="pdDetails"><div class="pdDetHead">PRODUCT DETAILS</div><div class="pdDetBox">'+rows.map(function(x){return '<div class="pdDetRow"><span class="pdDetLbl">'+x[1]+'</span><span class="pdDetVal">'+escapeHtml(d[x[0]])+'</span></div>'}).join('')+'</div></div>':'';
 var stockNote=sb.out?'<div class="pdStock">Out of stock</div>':((p.stock!==undefined&&p.stock!==null&&p.stock<=3)?'<div class="pdStock">Only '+p.stock+' left</div>':'');
 var sizes=PD.needs?'<div class="pdLabelRow"><span>SIZE</span><a onclick="openSize('+p.id+')">Size guide</a></div><div class="pdSizes" id="pdSizes">'+p.sz.map(function(z){return '<button type="button" class="pdSize" data-s="'+escapeHtml(z)+'" onclick="pdSetSize(this)">'+escapeHtml(z)+'</button>'}).join('')+'</div>':'';
 var crumb=[p.cat,p.col].filter(Boolean).map(escapeHtml).join(' / ');
 document.getElementById('pdLogo').innerHTML=logoHTML(S.name);
 document.getElementById('pdWrap').innerHTML='<div class="pdGrid"><div class="pdLeft"><div class="pdThumbs">'+thumbs+'</div>'+details+'</div>'
-+'<div class="pdCenter"><div class="pdMain" id="pdMain"><div class="pdTrack" id="pdTrack" onscroll="pdOnScroll(this)">'+p.vars.map(function(v,i){return '<div class="pdSlide">'+pdMedia(v,p,false,i>0)+'</div>'}).join('')+'</div>'+(p.vars.length>1?'<div class="pdCount" id="pdCount">'+(PD.idx+1)+' / '+p.vars.length+'</div><div class="pdDots" id="pdDots">'+p.vars.map(function(v,i){return '<button type="button" class="pdDot'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="Image '+(i+1)+'"></button>'}).join('')+'</div>':'')+'</div></div>'
++'<div class="pdCenter"><div class="pdMain" id="pdMain"><div class="pdTrack" id="pdTrack" onscroll="pdOnScroll(this)">'+gal.map(function(v,i){/* FIX: Remove placeholder from product gallery */return '<div class="pdSlide">'+pdMedia(v,p,false,i>0)+'</div>'}).join('')+'</div>'+(gal.length>1?'<div class="pdCount" id="pdCount">'+(PD.idx+1)+' / '+gal.length+'</div><div class="pdDots" id="pdDots">'+gal.map(function(v,i){return '<button type="button" class="pdDot'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="Image '+(i+1)+'"></button>'}).join('')+'</div>':'')+'</div></div>'
 +'<div class="pdRight">'+(crumb?'<div class="pdCrumb">'+crumb+'</div>':'')+'<h1 class="pdTitle">'+escapeHtml(p.name)+'</h1>'
 +'<div class="pdPrice">'+(disc?'<span class="pdOld">'+fmt(disc.oldPrice)+'</span>':'')+fmt(p.price)+'</div>'+stockNote+sizes
 +'<div class="pdLabelRow"><span>QUANTITY</span></div><div class="pdQty"><button type="button" onclick="pdQty(-1)" aria-label="Decrease quantity">−</button><span id="pdQtyVal">1</span><button type="button" onclick="pdQty(1)" aria-label="Increase quantity">+</button></div>'
@@ -5348,8 +5350,8 @@ function pdCanonical(path){try{if(!/^https?:$/.test(location.protocol))return;va
 function pdMark(i){PD.idx=i;
 document.querySelectorAll('#pdWrap .pdThumb').forEach(function(t,j){t.classList.toggle('on',j===i)});
 document.querySelectorAll('#pdDots .pdDot').forEach(function(d,j){d.classList.toggle('on',j===i)});
-var c=document.getElementById('pdCount'),p=P.find(function(x){return Number(x.id)===PD.pid});if(c&&p)c.textContent=(i+1)+' / '+p.vars.length}
-function pdGo(i,smooth){var tr=document.getElementById('pdTrack');if(!tr)return;var p=P.find(function(x){return Number(x.id)===PD.pid});if(!p||!p.vars[i])return;
+var c=document.getElementById('pdCount'),p=P.find(function(x){return Number(x.id)===PD.pid});if(c&&p)c.textContent=(i+1)+' / '+pdGallery(p).length}
+function pdGo(i,smooth){var tr=document.getElementById('pdTrack');if(!tr)return;var p=P.find(function(x){return Number(x.id)===PD.pid});if(!p||!pdGallery(p)[i])return;/* FIX: Remove placeholder from product gallery */
 tr.scrollTo({left:i*tr.clientWidth,behavior:smooth===false?'auto':'smooth'});pdMark(i)}
 function pdSelect(i){pdGo(i,true)}
 var PD_RAF=0;
