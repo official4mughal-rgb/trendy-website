@@ -6395,32 +6395,32 @@ document.documentElement.classList.remove('app-loading');if(L){L.classList.add('
 @media (min-width:768px){
   .hs-slide{background-position:center top}
 }
-/* SURGICAL: Hero image fix + Shop button position (desktop only) */
+/* SURGICAL: Hero image fix (v2 - show full model, desktop only) */
 @media (min-width:768px){
-  /* SURGICAL: Hero image fix */
   .hs-slide{
-    background-size:cover;
+    max-height:700px;
+    background-size:contain;
     background-position:center center;
-    /* SURGICAL: Shop button position - reserve a 72px strip under the image */
-    padding-bottom:72px;
-    background-origin:content-box;
-    background-clip:content-box;
-    max-height:452px;
+    background-repeat:no-repeat;
+    background-color:#f5f5f5;
   }
-  .hs-slide::after{bottom:72px}
-  /* SURGICAL: Shop button position - below the image, transparent */
+  /* SURGICAL: Shop button position (v2 - overlay at bottom of image, transparent) */
   .hs-slide>.hs-btn{
     position:absolute;
+    bottom:30px;
     left:50%;
-    bottom:16px;
     transform:translateX(-50%);
     margin-top:0;
     background:transparent;
-    color:#1A1A1A;
-    border:2px solid #1A1A1A;
+    border:2px solid #fff;
+    color:#fff;
+    padding:12px 32px;
+    font-size:14px;
+    letter-spacing:1px;
+    z-index:10;
   }
-  .hs-slide>.hs-btn:hover{background:#1A1A1A;color:#fff}
-  .hs-dots{bottom:88px}
+  .hs-slide>.hs-btn:hover{background:rgba(255,255,255,.2)}
+  .hs-dots{bottom:90px}
 }
 </style>
 </body>
