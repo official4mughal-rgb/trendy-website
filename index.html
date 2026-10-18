@@ -1851,7 +1851,7 @@ toast('⚠️ Save failed — check your connection and try again. (Your change 
 function cloudSeen(k){return !!(window.CLOUD_SEEN&&window.CLOUD_SEEN[k])}
 function persist(){var bundle={P:P,CATS:CATS,S:S,SC:SIZECHARTS,NC:nextC,NC2:nextCol,NP:nextId,HERO:HERO,NH:nextHero,dataVersion:DATA_VERSION};
 try{localStorage.setItem('trendyData',JSON.stringify(bundle))}catch(e){}
-if(!window.fbLoggedIn)return Promise.resolve({cloud:false});
+if(!window.fbLoggedIn||window.__noCloudPersist)return Promise.resolve({cloud:false});/* FIX #1: no cloud write from snapshot-triggered renders */
 var tasks=[];
 try{if(window.fbSaveProducts&&cloudSeen('products'))tasks.push(window.fbSaveProducts(P))}catch(e){dbg('fb products save err (non-blocking)',e)}
 try{if(window.fbSaveCategories&&cloudSeen('categories'))tasks.push(window.fbSaveCategories(CATS))}catch(e){dbg('fb categories save err (non-blocking)',e)}
@@ -2180,6 +2180,8 @@ return ADULT}
    rule, since a failed <img> has no intrinsic size for percentage sizing
    to apply to. */
 function imgFallback(img,gradKey,emoji,emojiClass){
+/* FIX #3: retry a failed card image once (cache-busted, srcset dropped) before showing the placeholder */
+if(img&&!img.__r&&img.getAttribute('src')){img.__r=1;var _s=img.getAttribute('src');img.removeAttribute('srcset');setTimeout(function(){try{img.src=_s+(_s.indexOf('?')>-1?'&':'?')+'r='+Date.now()}catch(e){}},700);return}
 var box=document.createElement('div');
 box.className=emojiClass;
 box.textContent='';
@@ -2835,14 +2837,14 @@ document.getElementById('fPrice').innerHTML=pbHtml}
 function fActive(){return(sortMode!=='def'||fBadge!=='ALL'||priceBucket!=='ALL')}
 function renderChips(){var html='<button class="chip'+(activeCat==='ALL'?' on':'')+'" onclick="setCat(\'ALL\')">ALL</button>';
 CATS.forEach(function(c){if(c.on)html+='<button class="chip'+(activeCat===c.name?' on':'')+'" onclick="setCat(\''+c.name+'\')">'+c.name+'</button>'});
-document.getElementById('chipBar').innerHTML=html}
+setIH(document.getElementById('chipBar'),html)/* FIX #1 */}
 function renderCircles(){var cat=curCat();var box=document.getElementById('colCircles');var sw=document.getElementById('subWrap');
 if(!cat){box.innerHTML='';sw.innerHTML='';return}
 var html=cat.cols.map(function(co,i){var bg=co.url?('background-image:url('+co.url+')'):('background:'+GRAD[ALLG[i%6]]);
 var cnt=P.filter(function(p){return p.col===co.name}).length;
 return '<div class="ccol'+(activeCol===co.name?' on':'')+'" onclick="openCollectionPage(\''+co.name+'\')"><div class="ccirc" style="'+bg+'"><div class="cin">'+(co.imageUrl?'<img class="ccImg" src="'+escapeHtml(co.imageUrl)+'" alt="'+escapeHtml(co.name)+' collection" loading="lazy" decoding="async" data-e="'+escapeHtml(co.e||co.name.charAt(0))+'" onerror="this.parentNode.textContent=this.getAttribute(\'data-e\')">':(co.e||co.name.charAt(0)))+'</div></div><span>'+co.name+'</span><em>'+cnt+' items</em></div>'}).join('');
 html+='<div class="ccol" onclick="quickAddCol()"><div class="ccirc" style="background:var(--panel);border:2px dashed var(--accent)"><div class="cin" style="color:var(--accent);font-size:26px">+</div></div><span>ADD</span><em>unlimited</em></div>';
-box.innerHTML=html;
+setIH(box,html);/* FIX #1 */
 if(activeCol){var co=cat.cols.find(function(x){return x.name===activeCol});
 if(co&&co.subs.length){sw.innerHTML='<div class="subhead">'+co.name+' — TYPES</div><div class="subList">'+co.subs.map(function(s2,i){var sc=P.filter(function(p){return p.col===co.name&&p.sub===s2}).length;return '<div class="subtile'+(activeSub===s2?' on':'')+'" onclick="setSub(\''+s2+'\')"><div class="subtile-img" style="background:'+GRAD[ALLG[(i+2)%6]]+'">'+s2.charAt(0)+'</div><div class="subtile-info"><h4>'+s2+'</h4><span>'+sc+' items</span></div></div>'}).join('')+'</div>';return}}
 sw.innerHTML=''}
@@ -3016,15 +3018,15 @@ CATS.forEach(function(c){if(!c.on)return;var cols=c.cols||[];
 h+='<div class="mmItem"><a onclick="goCat(decodeURIComponent(\''+mmEnc(c.name)+'\'))">'+escapeHtml(c.name)+'</a>'+(cols.length?'<button type="button" class="mmTog" aria-label="Show collections" aria-expanded="false" onclick="mmToggle(this)">+</button>':'')+'</div>';
 if(cols.length)h+='<div class="mmSub">'+cols.map(function(co){return '<a onclick="mmGoCol(decodeURIComponent(\''+mmEnc(co.name)+'\'))">'+escapeHtml(co.name)+'</a>'}).join('')+'</div>'});
 h+='<div class="mmItem"><a onclick="closeD();goSection(\'bundles\')">SALE</a></div>';
-var box=document.getElementById('drawerCats');if(box)box.innerHTML=h}
+var box=document.getElementById('drawerCats');if(box)setIH(box,h)/* FIX #1 */}
 function renderDeskNav(){var html='<a onclick="goCat(\'ALL\')">NEW IN</a>';
 CATS.forEach(function(c){if(c.on){html+='<a onclick="goCat(\''+c.name+'\')">'+c.name+'</a>'}});
 html+='<a class="sale" onclick="goSection(\'bundles\')">SALE</a>';
 html+='<a onclick="openTrack()">TRACK ORDER</a>';
-document.getElementById('deskNav').innerHTML=html}
+setIH(document.getElementById('deskNav'),html)/* FIX #1 */}
 function featP(id){var i=P.findIndex(function(x){return x.id===id});if(i<0)return;var it=P.splice(i,1)[0];P.unshift(it);render();toast('Featured!')}
 function dotsHTML(p){
-var validImages=(p.vars||[]).filter(function(v){return v&&v.url&&v.url.trim().length>0;}).slice(0,lbMaxImages()); /* FIX #1: Image Limit — dots follow the dashboard 'Max images per card' setting */
+var validImages=(p.vars||[]).filter(function(v){return v&&v.url&&v.url.trim().length>0;});
 var dotCount=validImages.length;
 if(dotCount<2)return '';
 var h='';for(var i=0;i<dotCount;i++)h+='<button class="cdot'+(i===0?' on':'')+'" onclick="event.stopPropagation();dotGo(this)"></button>';
@@ -3045,7 +3047,7 @@ var needs=productNeedsSize(p)&&p.sz&&p.sz.length&&p.sz[0]!=='Free'&&p.sz[0]!=='U
 if(needs){openProduct(id,0);toast('Choose your size, then tap Add to Cart.');return}
 selSize='';addCart(id)}
 function bcardHTML(p){var sb=stockBadge(p);
-var slides=p.vars.slice(0,lbMaxImages()).map(function(v,i){var x=vis(v);/* FIX #1: Image Limit — home cards show at most N slides */return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+(sb.out?';filter:grayscale(.6);opacity:.6':'')+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
+var slides=p.vars.map(function(v,i){var x=vis(v);return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+(sb.out?';filter:grayscale(.6);opacity:.6':'')+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
 var dots=dotsHTML(p);
 return '<div class="bcard premium-grid-card" onclick="openProduct('+p.id+')"><div class="ph cwrap"><div class="cgal" onscroll="updDots(this)">'+slides+'</div>'+(dots?'<div class="cdots">'+dots+'</div>':'')+(sb.text?'<span class="badge'+sb.cls+'">'+sb.text+'</span>':'')+'<button class="adm" style="right:10px" onclick="event.stopPropagation();editP('+p.id+')">✎</button><button class="adm" style="right:44px" onclick="event.stopPropagation();delP('+p.id+')">🗑</button>'+cardActs(p,sb)+'</div><div class="binfo"><h3>'+escapeHtml(p.name)+'</h3><p>'+fmt(p.price)+'</p></div></div>'}
 var halfW=0; /* legacy, unused */
@@ -3054,6 +3056,7 @@ if(h.sale){goSection('bundles');return}
 setCat(h.cat||'ALL');if(h.col){activeCol=h.col;render()}
 goSection('new')}
 function renderHero(){var box=document.getElementById('hsTrack');var dotsBox=document.getElementById('hsDots');
+/* FIX #1: don't rebuild the hero when nothing changed */var _hs=JSON.stringify(HERO);if(box&&box.__hs===_hs&&box.children.length)return;if(box)box.__hs=_hs;
 if(!box||!HERO.length){var hs=document.getElementById('heroSlider');if(hs)hs.style.display='none';return}
 box.innerHTML=HERO.map(function(h){
   var bg=h.url?('background-image:url('+h.url+')'):('background:'+GRAD[h.g||'g1']);
@@ -3102,7 +3105,7 @@ var sig=JSON.stringify(FP.map(function(p){var v=(p.vars&&p.vars[0])||{};return [
 if(sig===FD.sig)return;FD.sig=sig;
 var w=document.getElementById('fdWrap'),tr=document.getElementById('bsTrack');if(!tr)return;
 if(FD.first&&w&&FP.length){FD.first=false;w.classList.add('fd-in');setTimeout(function(){w.classList.remove('fd-in')},1600)}
-tr.innerHTML=FP.map(fdCardHTML).join('');
+/* FIX #1 */patchGrid(tr,FP,function(p){return fdCardHTML(p,FP.indexOf(p))});
 raf(fdDotsRender)}
 (function(){var el=document.getElementById('bigslide');if(!el)return;
 var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3160,7 +3163,7 @@ if(activeGal){activeGal.classList.remove('dragging');activeGal=null}
 },{passive:true});
 })();
 function pcardHTML(p){var sb=stockBadge(p);
-var slides=p.vars.slice(0,lbMaxImages()).map(function(v,i){var x=vis(v);/* FIX #1: Image Limit — home cards show at most N slides */return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
+var slides=p.vars.map(function(v,i){var x=vis(v);return '<div class="cslide"><div class="cin2 '+x.cls+'" style="'+x.st+'"'+(x.lazyAttr||'')+' onclick="event.stopPropagation();openProduct('+p.id+','+i+')"></div></div>'}).join('');
 var dots=dotsHTML(p);
 return '<div class="pcard premium-grid-card" onclick="openProduct('+p.id+')"><div class="pmedia">'+(sb.text?'<span class="badge'+sb.cls+'">'+sb.text+'</span>':'')+'<button class="adm" style="right:10px" onclick="event.stopPropagation();editP('+p.id+')">✎</button><button class="adm" style="right:44px" onclick="event.stopPropagation();delP('+p.id+')">🗑</button><button class="adm" style="right:78px" onclick="event.stopPropagation();featP('+p.id+')">⭐</button><div class="cwrap"><div class="cgal" onscroll="updDots(this)" style="'+(sb.out?'filter:grayscale(.6);opacity:.6':'')+'">'+slides+'</div><div class="cdots">'+dots+'</div></div>'+cardActs(p,sb)+'</div><div class="pinfo"><h4>'+escapeHtml(p.name)+'</h4><p class="pprice">'+fmt(p.price)+'</p></div></div>'}
 var curPid=null;
@@ -3177,6 +3180,24 @@ var el=en.target;var url=el.getAttribute('data-lazy-bg');if(url)el.style.backgro
 el.removeAttribute('data-lazy-bg');LAZY_IO.unobserve(el)})},{rootMargin:'200px 0px'}):null;
 function lazyObserveNewImages(){if(!LAZY_IO)return;
 document.querySelectorAll('.cin2[data-lazy-bg]').forEach(function(el){LAZY_IO.observe(el)})}
+/* FIX #1: Blinking — only rebuild a product card when ITS html changed; unchanged cards keep their DOM, images and swipe position */
+function patchGrid(el,items,fn,emptyHTML){
+if(!items.length){if(el.__k!=='#empty'){el.__k='#empty';el.innerHTML=emptyHTML||''}return}
+var htmls=items.map(fn),key=htmls.join('');if(el.__k===key)return;
+var firstPaint=(el.__k===undefined||el.__k==='#empty');el.__k=key;
+var old={};Array.prototype.forEach.call(el.children,function(c){if(c.__pid!==undefined)old[c.__pid]=c});
+var fresh=[];
+items.forEach(function(p,i){var n=old[p.id];
+if(!n||n.__h!==htmls[i]){var t=document.createElement('div');t.innerHTML=htmls[i];n=t.firstElementChild;n.__pid=p.id;n.__h=htmls[i];fresh.push(n)}
+var cur=el.children[i];if(cur!==n)el.insertBefore(n,cur||null)});
+while(el.children.length>items.length)el.removeChild(el.lastChild);
+if(!firstPaint)fresh.forEach(lazyForce)}
+/* FIX #3: re-rendered cards load their image immediately (no waiting on the lazy observer = no blank card) */
+function lazyForce(node){node.querySelectorAll('.cin2[data-lazy-bg]').forEach(function(e){e.style.backgroundImage='url('+e.getAttribute('data-lazy-bg')+')';e.removeAttribute('data-lazy-bg')})}
+/* FIX #1: skip identical innerHTML writes */
+function setIH(el,h){if(!el||el.__ih===h)return;el.__ih=h;el.innerHTML=h}
+/* FIX #1: debounce snapshot-driven renders; snapshot renders never write back to Firestore (prevents write->snapshot->write loops) */
+function debRender(){clearTimeout(window.__rT);window.__rT=setTimeout(function(){window.__noCloudPersist=true;try{render()}finally{window.__noCloudPersist=false}},150)}
 function render(){try{['new','best','bundles'].forEach(function(s){
 var items=P.filter(function(p){return p.sec===s&&visible(p)&&(fBadge==='ALL'||p.badge===fBadge)&&inBucket(p.price)});
 if(sortMode==='pl')items=items.slice().sort(function(a,b){return a.price-b.price});
@@ -3189,7 +3210,7 @@ el.className=EXP[s]?'pgrid':'hrow';
    after the grid, "Showing X of Y products" replaces the old plain count text. */
 var shown=items;var hasMore=false;
 if(EXP[s]){var lim=PAGE_SHOWN[s]||PAGE_SIZE;if(items.length>lim){shown=items.slice(0,lim);hasMore=true}}
-el.innerHTML=shown.map(pcardHTML).join('')||'<p style="color:var(--muted)">No products.</p>';
+/* FIX #1 */patchGrid(el,shown,pcardHTML,'<p style="color:var(--muted)">No products.</p>');
 var lmEl=document.getElementById('lm-'+s);
 if(lmEl)lmEl.innerHTML=hasMore?'<button type="button" class="btn" style="width:auto;margin:16px auto 0;display:flex;align-items:center;gap:8px;padding:13px 30px" onclick="loadMoreProducts(\''+s+'\')" id="lmBtn-'+s+'"><span id="lmSpin-'+s+'" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:lmSpin .6s linear infinite"></span>LOAD MORE</button>':'';
 var cEl=document.getElementById('cnt-'+s);if(cEl)cEl.textContent=EXP[s]?('Showing '+shown.length+' of '+items.length+' products'):(items.length+' PRODUCTS');
@@ -4163,10 +4184,10 @@ renderOrdersDash();
 toast('Payment verified — order can now be shipped.')}
 function cancelOrder(id){var o=ORDERS_CACHE.find(function(x){return x.id===id});if(!o)return;
 if(!confirm('Cancel this order? Items will be added back to inventory.'))return;
-(o.items||[]).forEach(function(it){var p=P.find(function(x){return x.id===it.id});if(p)p.stock=(p.stock||0)+it.qty});
+/* FIX #2: local restock removed — fbOrderStatusWithStock restores stock atomically (prevents double restock) */
 persist();render();
 o.status='Cancelled';
-if(window.fbUpdateOrderStatus)window.fbUpdateOrderStatus(id,'Cancelled',stStamp(o,'Cancelled',{}));/* FIX #3 */
+if(window.fbUpdateOrderStatus)(window.fbOrderStatusWithStock||window.fbUpdateOrderStatus)(id,'Cancelled',stStamp(o,'Cancelled',{})).catch(function(e){dbgWarn('Cancel failed:',e);toast('⚠️ Cancel failed — check your connection and try again.')});/* FIX #2 */
 renderOrdersDash();
 toast('Order cancelled — items restocked.')}
 function archiveOrder(id){var o=ORDERS_CACHE.find(function(x){return x.id===id});if(!o)return;
@@ -4220,7 +4241,7 @@ if(reason!=='Other')note='';
 if(!window.fbUpdateOrderStatus){toast('⚠️ Cloud not ready yet — the status was not changed. Please try again shortly.');return}
 var extra=stStamp(o,'Returned',{returnReason:reason,returnNote:note,returnedAt:new Date().toISOString(),returnCount:(Number(o.returnCount)||0)+1});/* FIX #3 */
 var btn=document.getElementById('returnConfirmBtn');btn.disabled=true;
-window.fbUpdateOrderStatus(id,'Returned',extra).then(function(){
+(window.fbOrderStatusWithStock||window.fbUpdateOrderStatus)(id,'Returned',extra).then(function(){/* FIX #2: restock on return */
 o.status='Returned';Object.keys(extra).forEach(function(k){o[k]=extra[k]});
 toast('Order marked as Returned ('+reason+').');
 closeReturnModal()
@@ -4229,12 +4250,13 @@ function retryDelivery(id){var o=ORDERS_CACHE.find(function(x){return x.id===id}
 if(!confirm('Retry delivery for '+(o.orderNumber||('#'+o.id))+'? Its status will go back to Confirm.'))return;
 if(!window.fbUpdateOrderStatus){toast('⚠️ Cloud not ready yet — the status was not changed. Please try again shortly.');return}
 var extra=stStamp(o,'Confirm',{retriedAt:new Date().toISOString()});/* FIX #3 */
-window.fbUpdateOrderStatus(id,'Confirm',extra).then(function(){
+(window.fbOrderStatusWithStock||window.fbUpdateOrderStatus)(id,'Confirm',extra).then(function(){/* FIX #2: re-hold stock on retry */
 o.status='Confirm';o.retriedAt=extra.retriedAt;renderOrdersDash();toast('Order moved back to Confirm — it will appear in the next courier CSV.')
 }).catch(function(e){dbgWarn('Retry failed:',e);toast('⚠️ Failed to update the order — check your connection and try again.')})}
 function setOrderStatus(id,status){if(String(status).toLowerCase()==='returned'){openReturnModal(id);return}/* FIX #3: optimistic move + history + revert on failure */var o=ORDERS_CACHE.find(function(x){return x.id===id});var prevSt=o?{status:o.status,lastStatusChange:o.lastStatusChange,statusHistory:o.statusHistory}:null;var stx=o?stStamp(o,status,{}):{};if(o){o.status=status;o.lastStatusChange=stx.lastStatusChange;o.statusHistory=stx.statusHistory}
 ordAnimate();var stRevert=function(){if(o&&prevSt)Object.assign(o,prevSt);renderOrdersDash();toast('⚠️ Could not update the order status — please check your connection and try again. The change was reverted.')};
-if(window.fbUpdateOrderStatus)window.fbUpdateOrderStatus(id,status,stx).catch(stRevert);else stRevert();
+/* FIX #2: stock-aware status change */function stockToast(r){if(r&&r.clamped)toast('⚠️ Stock was lower than the order quantity, so it was set to 0.')}
+if(window.fbOrderStatusWithStock)window.fbOrderStatusWithStock(id,status,stx).then(stockToast).catch(stRevert);else if(window.fbUpdateOrderStatus)window.fbUpdateOrderStatus(id,status,stx).catch(stRevert);else stRevert();
 renderOrdersDash()}
 function printBill(id){var o=ORDERS_CACHE.find(function(x){return x.id===id});if(!o){toast('Order not found.');return}
 var rows=(o.items||[]).map(function(it){return '<tr><td>'+it.name+(it.size?' ('+it.size+')':'')+'</td><td style="text-align:center">'+it.qty+'</td><td style="text-align:right">'+fmt(it.price)+'</td><td style="text-align:right">'+fmt(it.price*it.qty)+'</td></tr>'}).join('');
@@ -4884,13 +4906,14 @@ function cleanupAllListeners(){ACTIVE_LISTENERS.forEach(function(u){try{u()}catc
 window.addEventListener('beforeunload',cleanupAllListeners);
 window.addEventListener('pagehide',cleanupAllListeners);
 function attachCloudListeners(){
+/* FIX #1: attach exactly once */if(window.__cloudAttached)return;window.__cloudAttached=true;
 if(window.fbListenProducts)trackListener(window.fbListenProducts(function(arr){
 var valid=arr&&arr.length&&arr.every(function(p){return p&&p.id!==undefined&&p.name&&Array.isArray(p.vars)&&p.vars.length});
-if(valid){P=arr.map(function(p){p.id=Number(p.id);return p});persistLocalOnly();render()}
+if(valid){/* FIX #1: ignore snapshots whose data did not change; debounce the rest */var _np=arr.map(function(p){p.id=Number(p.id);return p});var _sg=JSON.stringify(_np);if(_sg===window.__pSig)return;window.__pSig=_sg;P=_np;persistLocalOnly();debRender()}
 else if(arr&&arr.length){dbg('Ignored malformed products data from cloud')}}));
 if(window.fbListenCategories)trackListener(window.fbListenCategories(function(cats){
 var valid=cats&&cats.length&&cats.every(function(c){return c&&c.name&&Array.isArray(c.cols)});
-if(valid){CATS=cats;persistLocalOnly();render();renderBranding()}
+if(valid){/* FIX #1 */var _ks=JSON.stringify(cats);if(_ks===window.__kSig)return;window.__kSig=_ks;CATS=cats;persistLocalOnly();window.__noCloudPersist=true;try{render();renderBranding()}finally{window.__noCloudPersist=false}}
 else if(cats&&cats.length){dbg('Ignored malformed categories data from cloud')}}));
 if(window.fbListenRefCodes)trackListener(window.fbListenRefCodes(function(codes){window.KNOWN_REF_CODES=codes}));
 if(window.fbListenSecurity)trackListener(window.fbListenSecurity(function(sec){if(sec&&sec.pinHash){try{localStorage.setItem('ownerPinHash',sec.pinHash)}catch(e){}}}));
@@ -4905,14 +4928,14 @@ DELIVERY_THRESHOLD=cfg.freeDeliveryThreshold;
 if(el&&document.activeElement!==el)el.value=DELIVERY_THRESHOLD;
 updateFreeDeliveryDisplays()}
 else if(el&&document.activeElement!==el&&!el.value)el.value=DELIVERY_THRESHOLD}));
-if(window.fbListenConfig)trackListener(window.fbListenConfig(function(cfg){
+if(window.fbListenConfig)trackListener(window.fbListenConfig(function(cfg){var _cs=JSON.stringify(cfg);if(_cs===window.__cSig)return;window.__cSig=_cs;/* FIX #1 */
 if(cfg.dataVersion&&cfg.dataVersion<DATA_VERSION)return;
 if(cfg.S&&cfg.S.name)S=cfg.S;if(cfg.HERO)HERO=cfg.HERO;
 if(cfg.SC){SIZECHARTS=cfg.SC;for(var scKey2 in SIZECHARTS){if(SIZECHARTS[scKey2]&&SIZECHARTS[scKey2].rows)SIZECHARTS[scKey2].rows=SIZECHARTS[scKey2].rows.map(function(r){return Array.isArray(r)?{v:r}:r})}}
 if(cfg.LOY){LOY=cfg.LOY;if(!LOY.pointsSpendRate)LOY.pointsSpendRate=100;if(!LOY.pointsValue)LOY.pointsValue=25;if(!LOY.pointsMinRedeem)LOY.pointsMinRedeem=100}
 for(var scKey2 in SIZECHARTS){SIZECHARTS[scKey2].rows=SIZECHARTS[scKey2].rows.map(function(r){return Array.isArray(r)?{v:r}:r})}
 if(cfg.NC)nextC=cfg.NC;if(cfg.NC2)nextCol=cfg.NC2;if(cfg.NP)nextId=cfg.NP;if(cfg.NH)nextHero=cfg.NH;
-persistLocalOnly();render();renderBranding();renderSeason();applyThemeNow('white')}));
+persistLocalOnly();window.__noCloudPersist=true;try{render();renderBranding();renderSeason();applyThemeNow('white')}finally{window.__noCloudPersist=false}}));
 }
 if(window.fbReady)attachCloudListeners();
 else{
@@ -4979,16 +5002,12 @@ window.fbLogin(email,pass,function(ok,err){
 if(ok){showPinStep?.()}
 else{var m3=document.getElementById('fbMsg');if(m3)m3.textContent='Login failed: incorrect email/password.'}})}
 function cloudLogout(){window.fbLogout?.();var e=document.getElementById('fbEmail');if(e)e.value='';var p=document.getElementById('fbPass');if(p)p.value='';try{localStorage.removeItem('ownerSession')}catch(err){}document.body.classList.remove('owner');window.DEBUG_MODE=false;window.location.reload()}
-/* FIX #2: Session Persistence — badge: checking while auth restores, green while signed in, 'Offline' (not logout) when the connection drops */
-function updateCloudBadge(loggedIn){var badge=document.getElementById('cloudSyncBadge');if(!badge)return;
-if(window.isAuthInitializing){badge.textContent='⏳ CHECKING…';badge.style.background='#eee';badge.style.color='#777';return}
-if(loggedIn&&navigator.onLine===false){badge.textContent='⚠️ OFFLINE — SYNCING WHEN BACK ONLINE';badge.style.background='rgba(180,103,10,.12)';badge.style.color='#B4670A'}
-else if(loggedIn){badge.textContent='☁️ CLOUD SYNC: ON';badge.style.background='rgba(0,181,137,.12)';badge.style.color='#1B8A4C'}
-else{badge.textContent='⚠️ LOCAL ONLY — LOG IN TO SYNC';badge.style.background='rgba(240,6,127,.1)';badge.style.color='var(--accent)'}}
-window.addEventListener('online',function(){updateCloudBadge(window.fbLoggedIn)});
-window.addEventListener('offline',function(){updateCloudBadge(window.fbLoggedIn)});
 window.onFbAuthChange=function(loggedIn){var loginBox=document.getElementById('fbLoginBox');var inBox=document.getElementById('fbLoggedInBox');var st=document.getElementById('fbStatus');
-updateCloudBadge(loggedIn); /* FIX #2: Session Persistence — badge logic moved to updateCloudBadge() */
+var badge=document.getElementById('cloudSyncBadge');
+if(badge){
+if(loggedIn){badge.textContent='☁️ CLOUD SYNC: ON';badge.style.background='rgba(0,181,137,.12)';badge.style.color='#1B8A4C'}
+else{badge.textContent='⚠️ LOCAL ONLY — LOG IN TO SYNC';badge.style.background='rgba(240,6,127,.1)';badge.style.color='var(--accent)'}
+}
 if(!loginBox||!inBox)return;
 loginBox.style.display=loggedIn?'none':'block';
 inBox.style.display=loggedIn?'block':'none';
@@ -5317,22 +5336,20 @@ function pdMedia(v,p,thumb,lazy){
 if(v&&isU(v.url)){var src=thumb?((v.srcset&&v.srcset[400])||v.url):((v.srcset&&v.srcset[1200])||v.url);
 return '<img src="'+escapeHtml(src)+'" alt="'+escapeHtml(p.name)+'" draggable="false" decoding="async"'+((thumb||lazy)?' loading="lazy"':'')+'>'}
 return '<div class="pdPh" style="background:'+(GRAD[(v&&v.g)||'g1']||GRAD.g1)+'"><span>'+(p.e||'')+'</span></div>'}
-/* FIX: Remove placeholder from product gallery — only designs that have a real uploaded image URL are shown; the product page ignores the 'Max images per card' setting. If a product has no uploaded image at all, the original list is kept so the page still has something to show. */
-function pdGallery(p){var all=p.vars||[];var real=all.filter(function(v){return v&&isU(v.url)});return real.length?real:all}
 function pdNeedsSize(p){return !!(productNeedsSize(p)&&p.sz&&p.sz.length&&p.sz[0]!=='Free'&&p.sz[0]!=='Unstitched')}
 function openProduct(id,idx,noPush){
 var p=P.find(function(x){return Number(x.id)===Number(id)});if(!p){toast('Product not found.');return}
-PD.pid=Number(p.id);var gal=pdGallery(p);/* FIX: Remove placeholder from product gallery */PD.idx=Math.max(0,Math.min(idx||0,gal.length-1));PD.qty=1;PD.size='';PD.needs=pdNeedsSize(p);
+PD.pid=Number(p.id);PD.idx=Math.max(0,Math.min(idx||0,(p.vars||[]).length-1));PD.qty=1;PD.size='';PD.needs=pdNeedsSize(p);
 var sb=stockBadge(p),disc=colDiscountInfo(p),d=p.details||{};
 var rows=PD_DETAILS.filter(function(x){return d[x[0]]&&String(d[x[0]]).trim()});
-var thumbs=gal.map(function(v,i){/* FIX: Remove placeholder from product gallery */return '<button type="button" class="pdThumb'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="View image '+(i+1)+'">'+pdMedia(v,p,true)+'</button>'}).join('');
+var thumbs=(p.vars||[]).map(function(v,i){return '<button type="button" class="pdThumb'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="View image '+(i+1)+'">'+pdMedia(v,p,true)+'</button>'}).join('');
 var details=rows.length?'<div class="pdDetails"><div class="pdDetHead">PRODUCT DETAILS</div><div class="pdDetBox">'+rows.map(function(x){return '<div class="pdDetRow"><span class="pdDetLbl">'+x[1]+'</span><span class="pdDetVal">'+escapeHtml(d[x[0]])+'</span></div>'}).join('')+'</div></div>':'';
 var stockNote=sb.out?'<div class="pdStock">Out of stock</div>':((p.stock!==undefined&&p.stock!==null&&p.stock<=3)?'<div class="pdStock">Only '+p.stock+' left</div>':'');
 var sizes=PD.needs?'<div class="pdLabelRow"><span>SIZE</span><a onclick="openSize('+p.id+')">Size guide</a></div><div class="pdSizes" id="pdSizes">'+p.sz.map(function(z){return '<button type="button" class="pdSize" data-s="'+escapeHtml(z)+'" onclick="pdSetSize(this)">'+escapeHtml(z)+'</button>'}).join('')+'</div>':'';
 var crumb=[p.cat,p.col].filter(Boolean).map(escapeHtml).join(' / ');
 document.getElementById('pdLogo').innerHTML=logoHTML(S.name);
 document.getElementById('pdWrap').innerHTML='<div class="pdGrid"><div class="pdLeft"><div class="pdThumbs">'+thumbs+'</div>'+details+'</div>'
-+'<div class="pdCenter"><div class="pdMain" id="pdMain"><div class="pdTrack" id="pdTrack" onscroll="pdOnScroll(this)">'+gal.map(function(v,i){/* FIX: Remove placeholder from product gallery */return '<div class="pdSlide">'+pdMedia(v,p,false,i>0)+'</div>'}).join('')+'</div>'+(gal.length>1?'<div class="pdCount" id="pdCount">'+(PD.idx+1)+' / '+gal.length+'</div><div class="pdDots" id="pdDots">'+gal.map(function(v,i){return '<button type="button" class="pdDot'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="Image '+(i+1)+'"></button>'}).join('')+'</div>':'')+'</div></div>'
++'<div class="pdCenter"><div class="pdMain" id="pdMain"><div class="pdTrack" id="pdTrack" onscroll="pdOnScroll(this)">'+p.vars.map(function(v,i){return '<div class="pdSlide">'+pdMedia(v,p,false,i>0)+'</div>'}).join('')+'</div>'+(p.vars.length>1?'<div class="pdCount" id="pdCount">'+(PD.idx+1)+' / '+p.vars.length+'</div><div class="pdDots" id="pdDots">'+p.vars.map(function(v,i){return '<button type="button" class="pdDot'+(i===PD.idx?' on':'')+'" onclick="pdSelect('+i+')" aria-label="Image '+(i+1)+'"></button>'}).join('')+'</div>':'')+'</div></div>'
 +'<div class="pdRight">'+(crumb?'<div class="pdCrumb">'+crumb+'</div>':'')+'<h1 class="pdTitle">'+escapeHtml(p.name)+'</h1>'
 +'<div class="pdPrice">'+(disc?'<span class="pdOld">'+fmt(disc.oldPrice)+'</span>':'')+fmt(p.price)+'</div>'+stockNote+sizes
 +'<div class="pdLabelRow"><span>QUANTITY</span></div><div class="pdQty"><button type="button" onclick="pdQty(-1)" aria-label="Decrease quantity">−</button><span id="pdQtyVal">1</span><button type="button" onclick="pdQty(1)" aria-label="Increase quantity">+</button></div>'
@@ -5350,8 +5367,8 @@ function pdCanonical(path){try{if(!/^https?:$/.test(location.protocol))return;va
 function pdMark(i){PD.idx=i;
 document.querySelectorAll('#pdWrap .pdThumb').forEach(function(t,j){t.classList.toggle('on',j===i)});
 document.querySelectorAll('#pdDots .pdDot').forEach(function(d,j){d.classList.toggle('on',j===i)});
-var c=document.getElementById('pdCount'),p=P.find(function(x){return Number(x.id)===PD.pid});if(c&&p)c.textContent=(i+1)+' / '+pdGallery(p).length}
-function pdGo(i,smooth){var tr=document.getElementById('pdTrack');if(!tr)return;var p=P.find(function(x){return Number(x.id)===PD.pid});if(!p||!pdGallery(p)[i])return;/* FIX: Remove placeholder from product gallery */
+var c=document.getElementById('pdCount'),p=P.find(function(x){return Number(x.id)===PD.pid});if(c&&p)c.textContent=(i+1)+' / '+p.vars.length}
+function pdGo(i,smooth){var tr=document.getElementById('pdTrack');if(!tr)return;var p=P.find(function(x){return Number(x.id)===PD.pid});if(!p||!p.vars[i])return;
 tr.scrollTo({left:i*tr.clientWidth,behavior:smooth===false?'auto':'smooth'});pdMark(i)}
 function pdSelect(i){pdGo(i,true)}
 var PD_RAF=0;
@@ -5592,59 +5609,11 @@ window.fbSavePublicSettings({customerServiceNumber:raw}).catch(function(e){dbgWa
 <button type="button" id="pwaModalInstallBtn" onclick="pwaModalInstall()" style="width:100%;height:50px;background:#C2185B;color:#fff;border:0;font-size:13px;font-weight:600;letter-spacing:.14em;cursor:pointer">INSTALL NOW</button>
 <button type="button" onclick="pwaModalLater()" style="width:100%;height:44px;margin-top:8px;background:none;border:0;color:#6B6B6B;font-size:12px;letter-spacing:.1em;cursor:pointer">Maybe Later</button>
 </div></div>
-<style id="hero-footer-fix">
-/* ===== FIX 1: HERO — full-width, full-height, face-safe cropping ===== */
-.heroSlider{position:relative;z-index:1;overflow:hidden;width:100%;max-width:none!important;margin:0!important;height:100vh;min-height:600px}
-@supports (height:100svh){.heroSlider{height:100svh}}
-.heroSlider .hs-track{height:100%;padding-left:0!important;padding-right:0!important}
-.heroSlider .hs-slide{height:100%!important;min-height:0!important;max-height:none!important;background-size:cover!important;background-position:center top!important;background-repeat:no-repeat;justify-content:flex-end;padding:20px 20px clamp(64px,11vh,120px)}
-@media (max-width:768px){
-  .heroSlider{height:80vh;min-height:500px}
-  @supports (height:80svh){.heroSlider{height:80svh}}
-}
-/* layering: image/overlay 1 -> content 10 -> dots 12 -> footer 100 */
-.heroSlider .hs-slide::after{z-index:1}
-.heroSlider .hs-slide>*{position:relative;z-index:10}
-.heroSlider .hs-dots{z-index:12;bottom:20px}
-/* fade used by auto-play and dot navigation */
-@keyframes hsFade{from{opacity:.2}to{opacity:1}}
-.hs-slide.hs-fade{animation:hsFade .9s ease both}
-@media (prefers-reduced-motion:reduce){.hs-slide.hs-fade{animation:none}}
-/* ===== FIX 2: SHOP button — transparent, white border ===== */
-.heroSlider .hs-btn{background:transparent;color:#fff;border:2px solid #fff;padding:15px 40px;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;border-radius:2px;cursor:pointer;transition:background .3s ease,color .3s ease}
-.heroSlider .hs-btn:active,.heroSlider .hs-btn:focus-visible{background:#fff;color:#1A1A1A;outline:none}
-@media (hover:hover){.heroSlider .hs-btn:hover{background:#fff;color:#1A1A1A}}
-/* ===== FIX 2: FOOTER sits after the hero in normal flow, above it in stacking ===== */
-footer{position:relative;z-index:100;clear:both}
-</style>
-<script>
-/* HERO AUTO-PLAY — rotates every 5.5s on mobile + desktop; pauses on user interaction and resumes 8s later */
-(function(){
-var DELAY=5500,RESUME=8000,timer=null,resumeT=null,visible=true;
-function track(){return document.getElementById('hsTrack')}
-function curIdx(t){var w=t.clientWidth;return w?Math.round(t.scrollLeft/w):0}
-function fadeIn(t,i){var s=t.children[i];if(!s)return;s.classList.remove('hs-fade');void s.offsetWidth;s.classList.add('hs-fade')}
-function goTo(i){var t=track();if(!t)return;var n=t.children.length;if(n<2)return;i=((i%n)+n)%n;
-t.scrollTo({left:t.clientWidth*i,behavior:'auto'});fadeIn(t,i);try{updHeroDots(t)}catch(e){}}
-function start(){clearInterval(timer);
-timer=setInterval(function(){if(document.hidden||!visible)return;var t=track();if(!t||t.children.length<2)return;goTo(curIdx(t)+1)},DELAY)}
-function pauseThenResume(){clearInterval(timer);timer=null;clearTimeout(resumeT);resumeT=setTimeout(start,RESUME)}
-function stop(){clearInterval(timer);timer=null;clearTimeout(resumeT);resumeT=null}
-window.heroDotGo=function(i){pauseThenResume();goTo(i)};
-var hs=document.getElementById('heroSlider');
-if(hs){
-['touchstart','pointerdown','wheel','keydown'].forEach(function(ev){hs.addEventListener(ev,pauseThenResume,{passive:true})});
-if(typeof IntersectionObserver!=='undefined')new IntersectionObserver(function(en){visible=en[0].isIntersecting},{threshold:.2}).observe(hs);
-}
-window.addEventListener('pagehide',stop);window.addEventListener('beforeunload',stop);
-start();
-})();
-</script>
 <div id="endMark" style="display:none">TRENDY-BUILD-v16-COMPLETE</div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, deleteDoc, collection, collectionGroup, getDocs, query, where, limit, writeBatch, onSnapshot, serverTimestamp, arrayRemove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, deleteDoc, collection, collectionGroup, getDocs, query, where, limit, writeBatch, onSnapshot, serverTimestamp, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 const firebaseConfig = {
@@ -5658,25 +5627,18 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
-/* FIX #2: Session Persistence — modular SDK (v12) equivalent of firebase.auth().setPersistence(LOCAL): session survives refresh/restart */
-const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(function(e){dbg('auth persistence err', e)});
-/* FIX #2: Session Persistence — true until Firebase finishes restoring the saved session */
-window.isAuthInitializing = true;
 const OWNER_EMAIL = "official4mughal@gmail.com";
 window.fbLoggedIn = false;
 window.fbAnonReady = false;
 window.CLOUD_SEEN = {};   // set to true per collection when its FIRST snapshot arrives (see persist() guard in the main script)
 onAuthStateChanged(auth, function(user){
-  window.isAuthInitializing = false; /* FIX #2: Session Persistence — initial auth state has now resolved */
   window.fbLoggedIn = !!(user && !user.isAnonymous);
   if(user && !user.isAnonymous) window.fbAnonReady = true;
   if(user) window.fbAnonReady = true;
-  /* FIX #2: Session Persistence — anonymous sign-in ONLY when no session exists. Previously it ran unconditionally at startup and could overwrite the owner's restored session. */
-  if(!user) authPersistenceReady.then(function(){ return signInAnonymously(auth); }).catch(function(e){dbg('anon auth err', e)});
   if(window.onFbAuthChange) window.onFbAuthChange(window.fbLoggedIn);
 });
 // Anonymous sign-in so every visitor can save their own customer profile/coupons
-/* FIX #2: Session Persistence — unconditional startup signInAnonymously removed (now handled inside onAuthStateChanged above) */
+signInAnonymously(auth).catch(function(e){dbg('anon auth err', e)});
 
 var AUTH_ERROR_MESSAGES = {
   'auth/email-already-in-use': 'This email is already registered. Please login instead.',
@@ -5697,7 +5659,7 @@ window.fbLogin = async function(email, pass, cb){
     cb(false, authMsg);
   }
 };
-window.fbLogout = function(){ signOut(auth); /* FIX #2: Session Persistence — onAuthStateChanged signs in anonymously after sign-out */ };
+window.fbLogout = function(){ signOut(auth); signInAnonymously(auth) };
 
 // ---- Products collection (one document per product) ----
 window.fbSaveProducts = function(products){
@@ -5735,7 +5697,7 @@ window.fbRemoveProductVar = function(id, v){
 };
 window.fbDeleteProduct = function(id){ deleteDoc(doc(db,"products",String(id))).catch(function(e){dbg(e)}) };
 window.fbListenProducts = function(cb){
-  onSnapshot(collection(db,"products"), function(snap){
+  return onSnapshot(collection(db,"products"), function(snap){/* FIX #1: return unsubscribe */
     window.CLOUD_SEEN.products=true;
     var arr=[]; snap.forEach(function(d){arr.push(d.data())}); cb(arr);
   }, function(e){dbg('fb listen products err',e)});
@@ -5771,7 +5733,7 @@ window.fbSaveCategories = function(cats){
   return setDoc(doc(db,"categories","main"),{cats:cats}).catch(function(e){dbg('fb cats save err',e);throw e});
 };
 window.fbListenCategories = function(cb){
-  onSnapshot(doc(db,"categories","main"), function(snap){ window.CLOUD_SEEN.categories=true; if(snap.exists())cb(snap.data().cats) }, function(e){dbg(e)});
+  return onSnapshot(doc(db,"categories","main"), function(snap){ window.CLOUD_SEEN.categories=true; if(snap.exists())cb(snap.data().cats) }, function(e){dbg(e)});
 };
 
 // ---- Config collection (single doc "store": site settings, hero, loyalty, sizecharts, counters) ----
@@ -5780,7 +5742,7 @@ window.fbSaveConfig = function(cfg){
   return setDoc(doc(db,"config","store"),cfg).catch(function(e){dbg('fb config save err',e);throw e});
 };
 window.fbListenConfig = function(cb){
-  onSnapshot(doc(db,"config","store"), function(snap){ window.CLOUD_SEEN.config=true; if(snap.exists())cb(snap.data()) }, function(e){dbg(e)});
+  return onSnapshot(doc(db,"config","store"), function(snap){ window.CLOUD_SEEN.config=true; if(snap.exists())cb(snap.data()) }, function(e){dbg(e)});
 };
 
 // ---- Customers collection (keyed by SANITIZED phone number — digits only,
@@ -6146,6 +6108,23 @@ window.fbSaveRateCard=function(c){return s0(c).then(function(){return window.fbS
 window.fbDeleteRateCard=function(c){return d0(c).then(function(){return window.fbDeleteShippingRate(c).catch(function(){})})}})();
 /* FIX #1: storage delete + collection image helper */
 window.fbDeleteStoragePath=function(p){return deleteObject(storageRef(storage,p))};
+/* FIX #2: Inventory — order status + product stock change in ONE transaction.
+   Stock is held while an order is Pending/Confirm/Shipped/Delivered (the storefront already deducts it when the order is placed).
+   Moving to Cancelled/Returned releases it (+qty); moving back to an active status holds it again (-qty). Never below 0. */
+window.fbOrderStatusWithStock=function(orderId,status,extra){
+return runTransaction(db,async function(tx){
+var oref=doc(db,"orders",String(orderId)),os=await tx.get(oref);if(!os.exists())throw new Error('Order not found');
+var o=os.data(),rel=/^(cancelled|returned)$/i;
+var wasReleased=(o.stockHeld===false)||(o.stockHeld===undefined&&rel.test(o.status||''));
+var toReleased=rel.test(status||''),delta=0;
+if(!wasReleased&&toReleased)delta=1;else if(wasReleased&&!toReleased)delta=-1;
+var qty={};(o.items||[]).forEach(function(it){if(it&&it.id!==undefined)qty[it.id]=(qty[it.id]||0)+(Number(it.qty)||0)});
+var snaps=[];
+if(delta!==0){for(var id in qty){var pr=doc(db,"products",String(id));snaps.push({ref:pr,q:qty[id],snap:await tx.get(pr)})}}
+var clamped=false;
+snaps.forEach(function(x){if(!x.snap.exists())return;var cur=Number(x.snap.data().stock)||0,ns=cur+delta*x.q;if(ns<0){ns=0;clamped=true}tx.update(x.ref,{stock:ns})});
+tx.update(oref,Object.assign({},extra||{},{status:status,stockHeld:!toReleased}));
+return {clamped:clamped,delta:delta}})};
 window.fbReady = true;
 window.dispatchEvent(new Event('fbReady'));
 </script>

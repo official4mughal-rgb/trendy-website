@@ -1,111 +1,90 @@
-/* TRENDY service worker. Bump CACHE_VERSION on every deploy. */
-var CACHE_VERSION = 'v1.0.5';
-var CACHE_NAME = 'trendy-' + CACHE_VERSION;
-var PRECACHE = ['/', '/manifest.json', '/icon-192.png'];
+/* sw.js — TRENDY v1.0.6 */
+const CACHE_VERSION = 'v1.0.6';
+const CACHE_NAME = 'trendy-' + CACHE_VERSION;
+const PRECACHE = ['/', '/manifest.json', '/icon-192.png'];
+const STATIC_RE = /\.(?:css|js|png|jpe?g|gif|webp|svg|ico|woff2?|ttf)$/i;
 
-var OFFLINE_HTML =
-  '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
-  '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-  '<title>TRENDY — Offline</title>' +
-  '<style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-  'font-family:Inter,system-ui,sans-serif;background:#fff;color:#1A1A1A;text-align:center;padding:24px}' +
-  'h1{font-weight:600;letter-spacing:.32em;padding-left:.32em;font-size:36px;margin:0 0 16px}' +
-  'h1 b{font-weight:300}p{color:#6B6B6B;font-size:15px;margin:0}</style></head>' +
-  '<body><h1>TREN<b>DY</b></h1><p>You are offline. Please check your connection.</p></body></html>';
+const OFFLINE_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>TRENDY — Offline</title>
+<style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+font-family:Arial,Helvetica,sans-serif;background:#fff;color:#1A1A1A;text-align:center;padding:24px}
+.l{font-size:38px;letter-spacing:.32em;font-weight:600;padding-left:.32em}.l b{font-weight:300}
+p{color:#6B6B6B;max-width:340px;line-height:1.6}button{margin-top:18px;background:#C2185B;color:#fff;border:0;
+padding:14px 30px;font-size:13px;letter-spacing:.14em;font-weight:600;cursor:pointer}</style></head>
+<body><div class="l">TREN<b>DY</b></div><h2 style="font-weight:600;margin:22px 0 8px">You're offline</h2>
+<p>Please check your internet connection and try again.</p>
+<button onclick="location.reload()">TRY AGAIN</button></body></html>`;
 
-function offlineResponse() {
-  return new Response(OFFLINE_HTML, {
-    status: 503,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' }
-  });
+/* Never cache / never intercept */
+function isBypass(url) {
+  if (url.origin !== self.location.origin) return true;        // Firebase, Google APIs, TikTok/Facebook pixels, wa.me, fonts…
+  if (url.pathname === '/sw.js') return true;                  // the service worker itself
+  return false;
 }
 
-/* INSTALL: pre-cache the shell, take over immediately */
-self.addEventListener('install', function (event) {
-  console.log('[SW] Installing', CACHE_NAME);
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(function (cache) {
-        /* each item separately, so one failure does not abort the install */
-        return Promise.all(PRECACHE.map(function (url) {
-          return cache.add(url).catch(function (err) {
-            console.warn('[SW] Precache skipped:', url, err);
-          });
-        }));
-      })
-      .then(function () { return self.skipWaiting(); })
+      .then((cache) => Promise.all(PRECACHE.map((u) => cache.add(u).catch(() => {}))))
+      .catch(() => {})
+      .then(() => self.skipWaiting())
   );
 });
 
-/* ACTIVATE: delete every cache that is not the current version, then claim open tabs */
-self.addEventListener('activate', function (event) {
-  console.log('[SW] Activating', CACHE_NAME);
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then(function (keys) {
-        return Promise.all(keys.filter(function (k) { return k !== CACHE_NAME; })
-          .map(function (k) {
-            console.log('[SW] Deleting old cache:', k);
-            return caches.delete(k);
-          }));
-      })
-      .then(function () { return self.clients.claim(); })
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .catch(() => {})
+      .then(() => self.clients.claim())
   );
 });
 
-/* HTML: network-first, fall back to cache, then to the offline page */
-function networkFirst(req) {
-  return fetch(req).then(function (res) {
-    if (res && res.status === 200) {
-      var copy = res.clone();
-      /* every page route is the same SPA shell, so store it under '/' */
-      caches.open(CACHE_NAME).then(function (c) { c.put('/', copy); })
-        .catch(function (e) { console.warn('[SW] Cache put failed:', e); });
+self.addEventListener('message', (e) => { if (e.data === 'SKIP_WAITING') self.skipWaiting(); });
+
+/* HTML: network-first, fall back to cached page, then branded offline page */
+async function networkFirst(req) {
+  try {
+    const res = await fetch(req, { cache: 'no-cache' });
+    if (res && res.status === 200 && res.type === 'basic') {
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
     }
     return res;
-  }).catch(function (err) {
-    console.warn('[SW] Network failed, trying cache:', req.url, err);
-    return caches.match(req).then(function (hit) {
-      return hit || caches.match('/');
-    }).then(function (r) { return r || offlineResponse(); });
-  });
+  } catch (err) {
+    const cached = (await caches.match(req)) || (await caches.match('/'));
+    if (cached) return cached;
+    return new Response(OFFLINE_HTML, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
 }
 
-/* Static assets: cache-first, fall back to network */
-function cacheFirst(req) {
-  return caches.match(req).then(function (hit) {
-    if (hit) return hit;
-    return fetch(req).then(function (res) {
-      if (res && res.status === 200) {
-        var copy = res.clone();
-        caches.open(CACHE_NAME).then(function (c) { c.put(req, copy); })
-          .catch(function (e) { console.warn('[SW] Cache put failed:', e); });
-      }
-      return res;
-    });
-  }).catch(function (err) {
-    console.warn('[SW] Asset fetch failed:', req.url, err);
+/* Static assets: cache-first */
+async function cacheFirst(req) {
+  const cached = await caches.match(req);
+  if (cached) return cached;
+  try {
+    const res = await fetch(req);
+    if (res && res.status === 200 && res.type === 'basic') {
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+    }
+    return res;
+  } catch (err) {
     return new Response('', { status: 504, statusText: 'Offline' });
-  });
+  }
 }
 
-self.addEventListener('fetch', function (event) {
-  var req = event.request;
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET' || req.headers.has('range')) return;
+  const url = new URL(req.url);
+  if (isBypass(url)) return;                                   // browser handles it normally, nothing cached
 
-  /* ignore non-GET requests */
-  if (req.method !== 'GET') return;
+  const isHTML = req.mode === 'navigate'
+    || (req.headers.get('accept') || '').includes('text/html')
+    || url.pathname.endsWith('.html');
 
-  var url = new URL(req.url);
-
-  /* NEVER CACHE: cross-origin requests (Firebase, Google APIs, TikTok, Facebook, wa.me) */
-  if (url.origin !== self.location.origin) return;
-
-  /* NEVER CACHE: the service worker itself */
-  if (url.pathname === '/sw.js') return;
-
-  var isHTML = req.mode === 'navigate' ||
-    (req.headers.get('accept') || '').indexOf('text/html') > -1 ||
-    url.pathname === '/' || /\.html$/i.test(url.pathname);
-
-  event.respondWith(isHTML ? networkFirst(req) : cacheFirst(req));
+  if (isHTML) event.respondWith(networkFirst(req));
+  else if (STATIC_RE.test(url.pathname)) event.respondWith(cacheFirst(req));
+  /* anything else: not intercepted */
 });
