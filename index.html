@@ -2808,7 +2808,7 @@ function setSz(s){selSize=s;var p=P.find(function(x){return x.id===curPid});rend
 function renderSzRow(p){var box=document.getElementById('szRow');
 if(!p||!p.sz||!p.sz.length||!productNeedsSize(p)){box.innerHTML='';return}
 box.innerHTML=p.sz.map(function(s){return '<button class="szc'+(s===selSize?' on':'')+'" onclick="setSz(\''+s+'\')">'+s+'</button>'}).join('')}
-function quickAddCol(){var cat=curCat();if(!cat){toast('Turn on a category first.');return}
+function quickAddCol(){/* FIX #1 */if(!document.body.classList.contains('owner'))return;var cat=curCat();if(!cat){toast('Turn on a category first.');return}
 var n=prompt('New collection name:');if(!n)return;
 var u=prompt('Photo URL (optional):','');
 cat.cols.push({id:nextCol++,name:n.trim().toUpperCase(),e:'🛍',url:u?u.trim():'',subs:[],needsSize:true});
@@ -2843,7 +2843,7 @@ if(!cat){box.innerHTML='';sw.innerHTML='';return}
 var html=cat.cols.map(function(co,i){var bg=co.url?('background-image:url('+co.url+')'):('background:'+GRAD[ALLG[i%6]]);
 var cnt=P.filter(function(p){return p.col===co.name}).length;
 return '<div class="ccol'+(activeCol===co.name?' on':'')+'" onclick="openCollectionPage(\''+co.name+'\')"><div class="ccirc" style="'+bg+'"><div class="cin">'+(co.imageUrl?'<img class="ccImg" src="'+escapeHtml(co.imageUrl)+'" alt="'+escapeHtml(co.name)+' collection" loading="lazy" decoding="async" data-e="'+escapeHtml(co.e||co.name.charAt(0))+'" onerror="this.parentNode.textContent=this.getAttribute(\'data-e\')">':(co.e||co.name.charAt(0)))+'</div></div><span>'+co.name+'</span><em>'+cnt+' items</em></div>'}).join('');
-html+='<div class="ccol" onclick="quickAddCol()"><div class="ccirc" style="background:var(--panel);border:2px dashed var(--accent)"><div class="cin" style="color:var(--accent);font-size:26px">+</div></div><span>ADD</span><em>unlimited</em></div>';
+/* FIX #1 */html+='<div class="ccol owner-only" onclick="quickAddCol()"><div class="ccirc" style="background:var(--panel);border:2px dashed var(--accent)"><div class="cin" style="color:var(--accent);font-size:26px">+</div></div><span>ADD</span><em>unlimited</em></div>';
 setIH(box,html);/* FIX #1 */
 if(activeCol){var co=cat.cols.find(function(x){return x.name===activeCol});
 if(co&&co.subs.length){sw.innerHTML='<div class="subhead">'+co.name+' — TYPES</div><div class="subList">'+co.subs.map(function(s2,i){var sc=P.filter(function(p){return p.col===co.name&&p.sub===s2}).length;return '<div class="subtile'+(activeSub===s2?' on':'')+'" onclick="setSub(\''+s2+'\')"><div class="subtile-img" style="background:'+GRAD[ALLG[(i+2)%6]]+'">'+s2.charAt(0)+'</div><div class="subtile-info"><h4>'+s2+'</h4><span>'+sc+' items</span></div></div>'}).join('')+'</div>';return}}
@@ -6391,37 +6391,41 @@ var iv=setInterval(function(){var cs=window.CLOUD_SEEN||{};var ok=document.ready
 document.documentElement.classList.remove('app-loading');if(L){L.classList.add('hide');setTimeout(function(){L.remove()},520)}},100)})();
 </script>
 <style id="fix-hero-position">
-/* FIX #1: Hero — desktop/laptop shows the TOP of the image (model's face). Mobile (<768px) is untouched. */
-@media (min-width:768px){
-  .hs-slide{background-position:center top}
+/* SURGICAL FIX v3 */
+/* FIX #1: ADD-collection card is visible to the owner only */
+.owner-only{display:none!important}
+body.owner .owner-only{display:block!important}
+
+/* FIX #2: hero fills the container (no grey letterbox bars), all screen sizes */
+.hs-slide{
+  min-height:500px;
+  max-height:85vh;
+  background-size:cover;
+  background-position:center center;
+  background-repeat:no-repeat;
 }
-/* SURGICAL: Hero image fix (v2 - show full model, desktop only) */
 @media (min-width:768px){
-  .hs-slide{
-    max-height:700px;
-    background-size:contain;
-    background-position:center center;
-    background-repeat:no-repeat;
-    background-color:#f5f5f5;
-  }
-  /* SURGICAL: Shop button position (v2 - overlay at bottom of image, transparent) */
-  .hs-slide>.hs-btn{
-    position:absolute;
-    bottom:30px;
-    left:50%;
-    transform:translateX(-50%);
-    margin-top:0;
-    background:transparent;
-    border:2px solid #fff;
-    color:#fff;
-    padding:12px 32px;
-    font-size:14px;
-    letter-spacing:1px;
-    z-index:10;
-  }
-  .hs-slide>.hs-btn:hover{background:rgba(255,255,255,.2)}
-  .hs-dots{bottom:90px}
+  .hs-slide{min-height:600px}
 }
+
+/* FIX #3: SHOP NOW button - same transparent bottom-anchored style on mobile and desktop */
+.hs-slide>.hs-btn{
+  position:absolute;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
+  margin-top:0;
+  background:transparent;
+  border:2px solid #fff;
+  color:#fff;
+  padding:12px 32px;
+  font-size:14px;
+  letter-spacing:1px;
+  z-index:10;
+}
+.hs-slide>.hs-btn:hover{background:rgba(255,255,255,.2)}
+/* FIX #3: pagination dots sit above the button on all sizes */
+.hs-dots{bottom:80px}
 </style>
 </body>
 </html>

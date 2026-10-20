@@ -1,20 +1,34 @@
+# Netlify _headers — TRENDY (shoptrendy.com.pk)
+# Place in the publish root next to index.html and sw.js.
+# NOTE: the full Content-Security-Policy stays in the <meta> tag inside index.html.
+# Here we only add frame-ancestors (it is ignored in <meta> CSP) plus safe defaults.
+
 /*
   Content-Security-Policy: frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
 
-/*.css
-  Cache-Control: public, max-age=31536000, immutable
-/*.js
-  Cache-Control: public, max-age=31536000, immutable
-/*.png
-  Cache-Control: public, max-age=31536000, immutable
-/*.jpg
-  Cache-Control: public, max-age=31536000, immutable
-/*.webp
-  Cache-Control: public, max-age=31536000, immutable
-
+# HTML must always be revalidated so deploys (like the hero / ADD-button fix) reach customers immediately
 /
-  Cache-Control: no-cache, no-store, must-revalidate
+  Cache-Control: public, max-age=0, must-revalidate
 /index.html
-  Cache-Control: no-cache, no-store, must-revalidate
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The service worker must never be cached by the browser/CDN, otherwise updates get stuck
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Static assets: cached for a day, then revalidated (the SW handles repeat visits)
+/*.png
+  Cache-Control: public, max-age=86400
+/*.jpg
+  Cache-Control: public, max-age=86400
+/*.webp
+  Cache-Control: public, max-age=86400
+/*.svg
+  Cache-Control: public, max-age=86400

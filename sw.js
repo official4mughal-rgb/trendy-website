@@ -1,5 +1,5 @@
-/* FIX: SW Update Critical v1.0.10 */
-var CACHE_VERSION = 'v1.0.10';
+/* SURGICAL: cache version bumped v1.0.10 -> v1.0.11 so every visitor drops the old cache and picks up the hero / ADD-button fixes. Nothing else changed. */
+var CACHE_VERSION = 'v1.0.11';
 var CACHE_NAME = 'trendy-' + CACHE_VERSION;
 var PRECACHE = ['/', '/manifest.json', '/icon-192.png'];
 var STATIC_RE = /\.(?:css|js|png|jpe?g|gif|webp|svg|ico|woff2?|ttf)$/i;
