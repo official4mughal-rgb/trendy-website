@@ -80,8 +80,14 @@ if(d&&d.savedAt&&(now-d.savedAt)>THIRTY_DAYS)localStorage.removeItem(key);
 </style>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="preconnect" href="https://firebaseapp.com">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com">
+<!-- PERF: start downloading the Firebase modules the page needs at startup while the HTML is still parsing (same URLs as the import statements, so the browser reuses them) -->
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js">
 <script>
 /* Runs synchronously in <head>, before <body> is parsed, so the saved theme is on the very first paint (no FOUC). */
 window.TRENDY_THEMES={pink:{bg:'#FFDCE9',panel:'#FFF',ink:'#0D0D0F',muted:'#6E5A64',line:'rgba(0,0,0,.08)'},
@@ -94,7 +100,7 @@ orange:{bg:'#E65100',panel:'#FFF',ink:'#1A0A00',muted:'#5A2A10',line:'rgba(0,0,0
 (function(){var th=window.TRENDY_THEMES.white;for(var k in th)document.documentElement.style.setProperty('--'+k,th[k]);})();
 </script>
 <style id="critical-theme">:root{--bg:#FFFFFF;--panel:#FFFFFF;--ink:#1A1A1A;--muted:#6B6B6B;--line:#E5E5E5;--orange:#1A1A1A}html{background:#FFFFFF}</style>
-<script>/* FIX #4: gate sections until data ready (9s failsafe so the page can never stay blank) */document.documentElement.classList.add('app-loading');setTimeout(function(){document.documentElement.classList.remove('app-loading')},9000);</script>
+<script>/* FIX #4: gate sections until data ready (9s failsafe so the page can never stay blank) */document.documentElement.classList.add('app-loading');setTimeout(function(){document.documentElement.classList.remove('app-loading')},3500);</script>
 <style id="fix4-loading">
 /* FIX #4: loading screen + layout-shift prevention + fade-in */
 #appLoader{position:fixed;inset:0;z-index:99990;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .5s ease}
@@ -107,6 +113,17 @@ orange:{bg:'#E65100',panel:'#FFF',ink:'#1A0A00',muted:'#5A2A10',line:'rgba(0,0,0
 body{overscroll-behavior-y:contain;overflow-x:hidden}
 #fdWrap,#coll,#premium-product-grids{position:relative;transition:opacity .6s ease}
 #fdWrap{min-height:300px}#coll{min-height:400px}#premium-product-grids>section{min-height:500px;position:relative}
+/* PERF (CLS): on phones the Featured Drops block is always 0.8889*viewport-width + ~94px tall (measured at 360px and 412px) - reserve exactly that so nothing below it moves when the cards arrive */
+@media (max-width:639px){#fdWrap{min-height:calc(88.89vw + 93px)}}
+/* PERF: skeleton product cards (same 3:4 media + info height as a real .pcard) shown on a first visit until the real catalogue arrives */
+.skCard{background:#fff;border-radius:2px;overflow:hidden}
+.skMedia{padding-top:133.3333%;background:#F5F5F5;position:relative;overflow:hidden}
+.skInfo{padding:14px 2px 6px;height:68px;box-sizing:border-box}
+.skInfo i{display:block;height:12px;background:#F0F0F0;margin-bottom:10px;width:70%;position:relative;overflow:hidden}
+.skInfo i+i{width:35%}
+.skMedia::after,.skInfo i::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);transform:translateX(-100%);animation:skSlide 1.3s ease-in-out infinite}
+@keyframes skSlide{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.skMedia::after,.skInfo i::after{animation:none}}
 html.app-loading #fdWrap,html.app-loading #coll,html.app-loading #premium-product-grids,html.app-loading #heroSlider{opacity:0}
 .fdMedia,.colc-imgwrap{aspect-ratio:3/4}
 /* FIX #1: collection circle image */
@@ -162,7 +179,9 @@ html.app-loading #fdWrap,html.app-loading #coll,html.app-loading #premium-produc
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TRENDY">
 <link rel="apple-touch-icon" href="/icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- PERF: Google Fonts stylesheet no longer blocks first paint (media=print swap trick; text shows in the fallback font and swaps, exactly as display=swap already did) -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <script>
 window.addEventListener('pageshow',function(event){
   if(!event.persisted)return;
@@ -907,7 +926,7 @@ body.owner .dashBtn{display:inline-block!important}
 <div id="seasonFX"></div>
 <!-- NEW PHASE 3: PWA banners -->
 <div id="pwaOfflineBanner" style="display:none;background:#FFF1E0;color:#B4670A;text-align:center;padding:8px 12px;font-size:12px;font-weight:700">⚠️ You are offline. Browsing cached products only.</div>
-<div id="pwaInstallBanner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:#ff1493;color:#fff;padding:10px 14px;font-size:12px;font-weight:700">
+<div id="pwaInstallBanner" style="position:absolute;top:0;left:0;right:0;z-index:60;display:none;align-items:center;justify-content:space-between;gap:10px;background:#ff1493;color:#fff;padding:10px 14px;font-size:12px;font-weight:700">
 <span>📱 Install TRENDY app for faster shopping!</span>
 <span style="display:flex;gap:8px;flex-shrink:0">
 <button type="button" onclick="pwaInstallClick()" style="background:#fff;color:#ff1493;border:none;border-radius:20px;padding:7px 14px;font-weight:800;font-size:11px;cursor:pointer">Install</button>
@@ -1738,7 +1757,7 @@ var HERO=[
 var nextHero=10;
 var DATA_VERSION=2;
 (function(){try{var d=JSON.parse(localStorage.getItem('trendyData')||'null');
-if(d&&d.P&&d.CATS&&d.S&&d.dataVersion===DATA_VERSION){P=d.P.map(function(p){p.id=Number(p.id);return p});CATS=d.CATS;S=d.S;if(d.SC)SIZECHARTS=d.SC;if(d.NC)nextC=d.NC;if(d.NC2)nextCol=d.NC2;if(d.NP)nextId=d.NP;if(d.HERO)HERO=d.HERO;if(d.NH)nextHero=d.NH;}
+if(d&&d.P&&d.CATS&&d.S&&d.dataVersion===DATA_VERSION){window.__DATA_READY=true;P=d.P.map(function(p){p.id=Number(p.id);return p});CATS=d.CATS;S=d.S;if(d.SC)SIZECHARTS=d.SC;if(d.NC)nextC=d.NC;if(d.NC2)nextCol=d.NC2;if(d.NP)nextId=d.NP;if(d.HERO)HERO=d.HERO;if(d.NH)nextHero=d.NH;}
 for(var scKey in SIZECHARTS){SIZECHARTS[scKey].rows=SIZECHARTS[scKey].rows.map(function(r){return Array.isArray(r)?{v:r}:r})}}catch(e){}})();
 /* NEW PHASE 2: Enhanced Error Handling — pink toast for Firestore/network failures, distinct from the
    existing black toast() (which many untouched systems already rely on for their own success/info messages).
@@ -1750,6 +1769,8 @@ for(var scKey in SIZECHARTS){SIZECHARTS[scKey].rows=SIZECHARTS[scKey].rows.map(f
    product-view / add-to-cart / checkout / purchase action it's attached to. */
 function analyticsToday(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function trackEvent(kind,data){
+/* PERF: make sure the (delayed) pixels exist before the first event is sent - injectTrackingPixels() is idempotent */
+try{if(typeof injectTrackingPixels==='function')injectTrackingPixels()}catch(e){}
 try{
 if(window.fbq){
 var fbMap={view_item:'ViewContent',add_to_cart:'AddToCart',begin_checkout:'InitiateCheckout',purchase:'Purchase'};
@@ -3058,12 +3079,19 @@ goSection('new')}
 function renderHero(){var box=document.getElementById('hsTrack');var dotsBox=document.getElementById('hsDots');
 /* FIX #1: don't rebuild the hero when nothing changed */var _hs=JSON.stringify(HERO);if(box&&box.__hs===_hs&&box.children.length)return;if(box)box.__hs=_hs;
 if(!box||!HERO.length){var hs=document.getElementById('heroSlider');if(hs)hs.style.display='none';return}
-box.innerHTML=HERO.map(function(h){
-  var bg=h.url?('background-image:url('+h.url+')'):('background:'+GRAD[h.g||'g1']);
-  return '<div class="hs-slide" style="'+bg+'"><div class="hs-title">'+h.title+'</div><div class="hs-sub">'+h.sub+'</div><button type="button" class="hs-btn" data-hero-id="'+h.id+'">'+h.btn+'</button></div>';
+box.innerHTML=HERO.map(function(h,i){
+  /* PERF: slide 1 loads right away; slides 2+ are loaded on the first touch / drag / scroll / click on the hero (see heroLoadRest) */
+  var later=!!(h.url&&i>0&&!window.__heroAll);
+  var bg=h.url?(later?'background-color:#2a2a2a':'background-image:url('+h.url+')'):('background:'+GRAD[h.g||'g1']);
+  return '<div class="hs-slide"'+(later?' data-hbg="'+escapeHtml(h.url)+'"':'')+' style="'+bg+'"><div class="hs-title">'+h.title+'</div><div class="hs-sub">'+h.sub+'</div><button type="button" class="hs-btn" data-hero-id="'+h.id+'">'+h.btn+'</button></div>';
 }).join('');
 if(dotsBox)dotsBox.innerHTML=HERO.length>1?HERO.map(function(h,i){return '<button type="button" class="hs-dot'+(i===0?' on':'')+'" onclick="heroDotGo('+i+')"></button>'}).join(''):'';
 }
+/* PERF: load the remaining hero slide images (called on first interaction with the hero; later renderHero() calls render all slides normally) */
+function heroLoadRest(){window.__heroAll=true;var bx=document.getElementById('hsTrack');if(!bx)return;
+bx.querySelectorAll('.hs-slide[data-hbg]').forEach(function(sl){sl.style.backgroundImage='url('+sl.getAttribute('data-hbg')+')';sl.style.backgroundColor='';sl.removeAttribute('data-hbg')})}
+(function(){var hs=document.getElementById('heroSlider');if(!hs)return;
+['touchstart','pointerdown','mousedown','wheel','focusin'].forEach(function(ev){hs.addEventListener(ev,heroLoadRest,{passive:true,once:true})})})();
 function updHeroDots(g){var w=g.clientWidth;if(!w)return;var i=Math.round(g.scrollLeft/w);
 var dots=document.querySelectorAll('#hsDots .hs-dot');for(var j=0;j<dots.length;j++){dots[j].classList.toggle('on',j===i)}
 heroIdx=i}
@@ -3095,12 +3123,12 @@ var im=p.images||[];for(i=0;i<im.length;i++){if(isU(im[i]))return{url:im[i],srcs
 return null}
 function fdCardHTML(p,i){var sb=stockBadge(p),im=fdImgOf(p),media;
 if(im){var ss=im.srcset&&im.srcset[400]?' srcset="'+escapeHtml(im.srcset[400])+' 400w, '+escapeHtml(im.srcset[800])+' 800w, '+escapeHtml(im.srcset[1200])+' 1200w" sizes="(max-width:639px) 62vw, (max-width:1023px) 40vw, 25vw"':'';
-media='<img class="fdImg" src="'+escapeHtml(im.url)+'"'+ss+' alt="'+escapeHtml(p.name)+'" draggable="false" decoding="async"'+(i>3?' loading="lazy"':'')+(sb.out?' style="filter:grayscale(.6);opacity:.6"':'')+' onerror="imgFallback(this,\'g1\',\'\',\'fdPh\')">'}
+media='<img class="fdImg" src="'+escapeHtml(im.url)+'"'+ss+' alt="'+escapeHtml(p.name)+'" draggable="false" decoding="async"'+(i>1?' loading="lazy"':'')+(sb.out?' style="filter:grayscale(.6);opacity:.6"':'')+' onerror="imgFallback(this,\'g1\',\'\',\'fdPh\')">'}
 else media='<div class="fdPh"></div>';
 return '<div class="fdCard" style="animation-delay:'+(i*70)+'ms" onclick="openProduct('+p.id+')"><div class="fdMedia">'+media+(sb.text?'<span class="badge'+sb.cls+'">'+sb.text+'</span>':'')
 +'<button class="adm" style="right:10px" onclick="event.stopPropagation();editP('+p.id+')">✎</button><button class="adm" style="right:44px" onclick="event.stopPropagation();delP('+p.id+')">🗑</button>'+cardActs(p,sb)+'</div>'
 +'<div class="fdInfo"><h3>'+escapeHtml(p.name)+'</h3><p>'+fmt(p.price)+'</p></div></div>'}
-function renderBig(){var FP=P.filter(visible).slice(0,8);if(!FP.length)FP=P.slice(0,8);
+function renderBig(){var FP=P.filter(visible).slice(0,8);if(!FP.length)FP=P.slice(0,8);if(!window.__DATA_READY)FP=[];
 var sig=JSON.stringify(FP.map(function(p){var v=(p.vars&&p.vars[0])||{};return [p.id,p.name,p.price,p.stock,p.badge,(fdImgOf(p)||{}).url||'',isFav(p.id)]}));
 if(sig===FD.sig)return;FD.sig=sig;
 var w=document.getElementById('fdWrap'),tr=document.getElementById('bsTrack');if(!tr)return;
@@ -3182,24 +3210,34 @@ function lazyObserveNewImages(){if(!LAZY_IO)return;
 document.querySelectorAll('.cin2[data-lazy-bg]').forEach(function(el){LAZY_IO.observe(el)})}
 /* FIX #1: Blinking — only rebuild a product card when ITS html changed; unchanged cards keep their DOM, images and swipe position */
 function patchGrid(el,items,fn,emptyHTML){
-if(!items.length){if(el.__k!=='#empty'){el.__k='#empty';el.innerHTML=emptyHTML||''}return}
+if(!items.length){var _ek='#empty:'+(emptyHTML||'');if(el.__k!==_ek){el.__k=_ek;el.innerHTML=emptyHTML||''}return}
 var htmls=items.map(fn),key=htmls.join('');if(el.__k===key)return;
-var firstPaint=(el.__k===undefined||el.__k==='#empty');el.__k=key;
+var firstPaint=(el.__k===undefined||String(el.__k).indexOf('#empty')===0);el.__k=key;
 var old={};Array.prototype.forEach.call(el.children,function(c){if(c.__pid!==undefined)old[c.__pid]=c});
 var fresh=[];
 items.forEach(function(p,i){var n=old[p.id];
 if(!n||n.__h!==htmls[i]){var t=document.createElement('div');t.innerHTML=htmls[i];n=t.firstElementChild;n.__pid=p.id;n.__h=htmls[i];fresh.push(n)}
 var cur=el.children[i];if(cur!==n)el.insertBefore(n,cur||null)});
 while(el.children.length>items.length)el.removeChild(el.lastChild);
-if(!firstPaint)fresh.forEach(lazyForce)}
+if(!firstPaint)fresh.forEach(function(n){lazyForce(n)})}
 /* FIX #3: re-rendered cards load their image immediately (no waiting on the lazy observer = no blank card) */
-function lazyForce(node){node.querySelectorAll('.cin2[data-lazy-bg]').forEach(function(e){e.style.backgroundImage='url('+e.getAttribute('data-lazy-bg')+')';e.removeAttribute('data-lazy-bg')})}
+/* PERF: only the FIRST photo of a card is forced, and only if the card is near the screen. Photos 2-4 of a card and cards far down the page stay on the lazy observer (this was loading every photo of every product at once = ~9 MB). */
+function lazyForce(node){var vh=window.innerHeight||800,r=node.getBoundingClientRect();
+if(r.bottom<-vh||r.top>vh*2)return;
+var c=node.querySelector('.cslide'),e=c&&c.querySelector('.cin2[data-lazy-bg]');
+if(e){e.style.backgroundImage='url('+e.getAttribute('data-lazy-bg')+')';e.removeAttribute('data-lazy-bg')}}
+/* PERF: when a customer touches/drags a card's photo strip, load that card's remaining photos so swiping never shows an empty slide */
+function lazyForceAll(node){node.querySelectorAll('.cin2[data-lazy-bg]').forEach(function(e){e.style.backgroundImage='url('+e.getAttribute('data-lazy-bg')+')';e.removeAttribute('data-lazy-bg')})}
+['touchstart','mousedown'].forEach(function(ev){document.addEventListener(ev,function(e){var g=e.target&&e.target.closest&&e.target.closest('.cgal');if(g)lazyForceAll(g)},{passive:true,capture:true})});
 /* FIX #1: skip identical innerHTML writes */
 function setIH(el,h){if(!el||el.__ih===h)return;el.__ih=h;el.innerHTML=h}
 /* FIX #1: debounce snapshot-driven renders; snapshot renders never write back to Firestore (prevents write->snapshot->write loops) */
 function debRender(){clearTimeout(window.__rT);window.__rT=setTimeout(function(){window.__noCloudPersist=true;try{render()}finally{window.__noCloudPersist=false}},150)}
+/* PERF: skeleton cards shown (instead of the built-in sample products) until real data is available */
+function skelGrid(){var c='<div class="skCard" aria-hidden="true"><div class="skMedia"></div><div class="skInfo"><i></i><i></i></div></div>';return c+c+c+c}
 function render(){try{['new','best','bundles'].forEach(function(s){
 var items=P.filter(function(p){return p.sec===s&&visible(p)&&(fBadge==='ALL'||p.badge===fBadge)&&inBucket(p.price)});
+if(!window.__DATA_READY)items=[];
 if(sortMode==='pl')items=items.slice().sort(function(a,b){return a.price-b.price});
 if(sortMode==='ph')items=items.slice().sort(function(a,b){return b.price-a.price});
 if(sortMode==='az')items=items.slice().sort(function(a,b){return a.name.localeCompare(b.name)});
@@ -3209,11 +3247,12 @@ el.className=EXP[s]?'pgrid':'hrow';
    untouched (it already shows a fixed short preview via CSS, not this list). 24 per page, "Load More" appended
    after the grid, "Showing X of Y products" replaces the old plain count text. */
 var shown=items;var hasMore=false;
-if(EXP[s]){var lim=PAGE_SHOWN[s]||PAGE_SIZE;if(items.length>lim){shown=items.slice(0,lim);hasMore=true}}
-/* FIX #1 */patchGrid(el,shown,pcardHTML,'<p style="color:var(--muted)">No products.</p>');
+/* PERF: the page limit now applies to the collapsed grid too (before, every product was put into the page at once); LOAD MORE reveals the rest */
+var lim=PAGE_SHOWN[s]||PAGE_SIZE;if(items.length>lim){shown=items.slice(0,lim);hasMore=true}
+/* FIX #1 */patchGrid(el,shown,pcardHTML,window.__DATA_READY?'<p style="color:var(--muted)">No products.</p>':skelGrid());
 var lmEl=document.getElementById('lm-'+s);
 if(lmEl)lmEl.innerHTML=hasMore?'<button type="button" class="btn" style="width:auto;margin:16px auto 0;display:flex;align-items:center;gap:8px;padding:13px 30px" onclick="loadMoreProducts(\''+s+'\')" id="lmBtn-'+s+'"><span id="lmSpin-'+s+'" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:lmSpin .6s linear infinite"></span>LOAD MORE</button>':'';
-var cEl=document.getElementById('cnt-'+s);if(cEl)cEl.textContent=EXP[s]?('Showing '+shown.length+' of '+items.length+' products'):(items.length+' PRODUCTS');
+var cEl=document.getElementById('cnt-'+s);if(cEl)cEl.textContent=!window.__DATA_READY?'':EXP[s]?('Showing '+shown.length+' of '+items.length+' products'):(items.length+' PRODUCTS');
 var rl=document.getElementById('rl-'+s);if(rl)rl.textContent=EXP[s]?'← SHOW LESS':'VIEW ALL →';
 var fb=document.getElementById('fb-'+s);if(fb)fb.innerHTML='≡ FILTER AND SORT'+(fActive()?' <b style="color:var(--accent)">●</b>':'')});
 renderChips();renderCircles();renderDrawer();renderDeskNav();renderBig();renderHero();renderVProd();renderPCat();renderCatList();renderMCat();renderSzSel();renderProductStockList();
@@ -3339,7 +3378,7 @@ function pwaCacheProductsForOffline(){try{localStorage.setItem('cachedProducts',
 function pwaLoadCachedProductsIfOffline(){
 if(navigator.onLine)return false;
 try{var cached=JSON.parse(localStorage.getItem('cachedProducts')||'null');
-if(Array.isArray(cached)&&cached.length){P=cached.map(function(p){p.id=Number(p.id);return p});return true}}catch(e){}
+if(Array.isArray(cached)&&cached.length){P=cached.map(function(p){p.id=Number(p.id);return p});window.__DATA_READY=true;return true}}catch(e){}
 return false}
 /* ---- Install prompt ---- */
 var PWA_DEFERRED_PROMPT=null;
@@ -4408,6 +4447,13 @@ S.ga4Id=document.getElementById('sysGa4Id').value.trim();
 S.fbAppId=document.getElementById('sysFbAppId').value.trim();
 injectTrackingPixels();
 afterPersistToast(persist,'Tracking pixels saved and activated!')}
+/* PERF: tracking pixels (Facebook / TikTok / GA4) now load once the page is interactive: first touch / scroll / key press, or PIXEL_DELAY_MS after the load event.
+   trackEvent() injects them first if they are not there yet, so no ViewContent / AddToCart / Purchase event is ever lost. Set PIXEL_DELAY_MS=0 to load them right after 'load'. */
+var PIXEL_DELAY_MS=5000;
+function schedulePixels(){var go=function(){try{injectTrackingPixels()}catch(e){}};
+['pointerdown','touchstart','keydown','scroll'].forEach(function(ev){window.addEventListener(ev,go,{once:true,passive:true})});
+var arm=function(){setTimeout(go,PIXEL_DELAY_MS)};
+if(document.readyState==='complete')arm();else window.addEventListener('load',arm,{once:true})}
 function injectTrackingPixels(){
 try{
 if(S.fbPixel&&!document.getElementById('fbPixelScript')){
@@ -4868,7 +4914,7 @@ try{
 if(pwaLoadCachedProductsIfOffline())dbg('Loaded products from offline cache');
 renderBranding();applySEOMeta();render();updateCart();updateFavCount();
 pwaSetOfflineBanner();registerManifest();registerServiceWorker();
-injectTrackingPixels();
+schedulePixels();
 try{var sess=JSON.parse(localStorage.getItem('ownerSession')||'null');if(sess&&sess.expiresAt>Date.now()){document.body.classList.add('owner');window.DEBUG_MODE=true}else if(sess){localStorage.removeItem('ownerSession')}}catch(e){}
 try{if(document.body.classList.contains('owner'))setTimeout(abCheckAndRunIfDue,3000);}catch(e){}
 document.getElementById('dropSection').style.display=S.showDrop?'':'none';
@@ -4908,9 +4954,10 @@ window.addEventListener('pagehide',cleanupAllListeners);
 function attachCloudListeners(){
 /* FIX #1: attach exactly once */if(window.__cloudAttached)return;window.__cloudAttached=true;
 if(window.fbListenProducts)trackListener(window.fbListenProducts(function(arr){
+var _wasReady=!!window.__DATA_READY;window.__DATA_READY=true;
 var valid=arr&&arr.length&&arr.every(function(p){return p&&p.id!==undefined&&p.name&&Array.isArray(p.vars)&&p.vars.length});
 if(valid){/* FIX #1: ignore snapshots whose data did not change; debounce the rest */var _np=arr.map(function(p){p.id=Number(p.id);return p});var _sg=JSON.stringify(_np);if(_sg===window.__pSig)return;window.__pSig=_sg;P=_np;persistLocalOnly();debRender()}
-else if(arr&&arr.length){dbg('Ignored malformed products data from cloud')}}));
+else{if(arr&&arr.length){dbg('Ignored malformed products data from cloud')}if(!_wasReady)debRender()}}));
 if(window.fbListenCategories)trackListener(window.fbListenCategories(function(cats){
 var valid=cats&&cats.length&&cats.every(function(c){return c&&c.name&&Array.isArray(c.cols)});
 if(valid){/* FIX #1 */var _ks=JSON.stringify(cats);if(_ks===window.__kSig)return;window.__kSig=_ks;CATS=cats;persistLocalOnly();window.__noCloudPersist=true;try{render();renderBranding()}finally{window.__noCloudPersist=false}}
@@ -5616,8 +5663,12 @@ window.fbSavePublicSettings({customerServiceNumber:raw}).catch(function(e){dbgWa
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, deleteDoc, collection, collectionGroup, getDocs, query, where, limit, writeBatch, onSnapshot, serverTimestamp, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
-import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+/* PERF: firebase-functions (checkout / coupon / order tracking) and firebase-storage (owner image uploads) are no longer downloaded for every visitor.
+   They load on first use (or quietly after the first touch / scroll) and are cached by the browser afterwards. */
+var _fnP=null,_stP=null;
+function loadFnMod(){return _fnP||(_fnP=import("https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js").catch(function(e){_fnP=null;throw e}))}
+function loadStMod(){return _stP||(_stP=import("https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js").catch(function(e){_stP=null;throw e}))}
+['pointerdown','touchstart','keydown','scroll'].forEach(function(ev){window.addEventListener(ev,function(){loadFnMod().catch(function(){})},{once:true,passive:true})});
 const firebaseConfig = {
   apiKey: "AIzaSyAayoyDG78644JN97soEa4mK-ygxxN6Bz0",
   authDomain: "trendy-store-38a8b.firebaseapp.com",
@@ -5877,9 +5928,9 @@ window.fbListenSecurity = function(cb){
 // These are wrapped so a failed/unreachable function rejects cleanly and
 // the caller (waOrder in the main script) can fall back to the old
 // client-side flow — the site must never crash or block checkout.
-var cloudFns=getFunctions(fbApp);
-window.fbCreateOrder=function(payload){return httpsCallable(cloudFns,'createOrder')(payload)};
-window.fbValidateCouponServer=function(payload){return httpsCallable(cloudFns,'validateCoupon')(payload)};
+function fbCallable(name,payload){return loadFnMod().then(function(m){return m.httpsCallable(m.getFunctions(fbApp),name)(payload)})}
+window.fbCreateOrder=function(payload){return fbCallable('createOrder',payload)};
+window.fbValidateCouponServer=function(payload){return fbCallable('validateCoupon',payload)};
 window.fbGetStoreSettings = function(cb){
   getDoc(doc(db,"storeSettings","config")).then(function(snap){ cb(snap.exists()?snap.data():null) }).catch(function(e){dbg(e);cb(null)});
 };
@@ -6033,7 +6084,7 @@ window.fbGetOrderById = function(orderNumber){
   return getDoc(doc(db,"orders",String(orderNumber))).then(function(s){return s.exists()?Object.assign({id:s.id},s.data()):null});
 };
 // Phone-number lookup goes through a Cloud Function (see trackOrder-function.js) so no customer data is ever readable by phone from the browser.
-window.fbTrackOrderCallable = function(payload){ return httpsCallable(cloudFns,'trackOrder')(payload) };
+window.fbTrackOrderCallable = function(payload){ return fbCallable('trackOrder',payload) };
 // ---- settings/main (owner-only): ownerPinHash, customColors, customCouriers
 window.fbGetSettings = function(cb){
   getDoc(doc(db,"settings","main")).then(function(snap){ cb(snap.exists()?snap.data():null) }).catch(function(e){dbg('fb settings read err',e);cb(null)});
@@ -6061,16 +6112,17 @@ window.fbSaveOwnerPin = function(hash){
 // NEW PHASE 3: Firebase Storage — compressed product-image uploads (Product Manager "Upload Image" buttons).
 // Requires the Storage product to be enabled once in the Firebase console (Build → Storage → Get started);
 // no other project reconfiguration is needed, it uses the project's existing default bucket.
-var storage = getStorage(fbApp);
 window.fbUploadProductImage = function(blob, path, onProgress){
-  var r = storageRef(storage, path);
-  var task = uploadBytesResumable(r, blob, {contentType: blob.type || 'image/webp'});
-  return new Promise(function(resolve, reject){
-    task.on('state_changed',
-      function(snap){ if(onProgress) onProgress(snap.bytesTransferred / snap.totalBytes) },
-      function(err){ dbg('fb image upload err', err); reject(err) },
-      function(){ getDownloadURL(task.snapshot.ref).then(resolve).catch(reject) }
-    );
+  return loadStMod().then(function(m){
+    var r = m.ref(m.getStorage(fbApp), path);
+    var task = m.uploadBytesResumable(r, blob, {contentType: blob.type || 'image/webp'});
+    return new Promise(function(resolve, reject){
+      task.on('state_changed',
+        function(snap){ if(onProgress) onProgress(snap.bytesTransferred / snap.totalBytes) },
+        function(err){ dbg('fb image upload err', err); reject(err) },
+        function(){ m.getDownloadURL(task.snapshot.ref).then(resolve).catch(reject) }
+      );
+    });
   });
 };
 // NEW PHASE 3: analytics/{date} — one document per day, incremented client-side (no Cloud Function in this
@@ -6114,7 +6166,7 @@ window.fbListenShippingRates=function(cb,errCb){try{return onSnapshot(collection
 window.fbSaveRateCard=function(c){return s0(c).then(function(){return window.fbSaveShippingRate(c)})};
 window.fbDeleteRateCard=function(c){return d0(c).then(function(){return window.fbDeleteShippingRate(c).catch(function(){})})}})();
 /* FIX #1: storage delete + collection image helper */
-window.fbDeleteStoragePath=function(p){return deleteObject(storageRef(storage,p))};
+window.fbDeleteStoragePath=function(p){return loadStMod().then(function(m){return m.deleteObject(m.ref(m.getStorage(fbApp),p))})};
 /* FIX #2: Inventory — order status + product stock change in ONE transaction.
    Stock is held while an order is Pending/Confirm/Shipped/Delivered (the storefront already deducts it when the order is placed).
    Moving to Cancelled/Returned releases it (+qty); moving back to an active status holds it again (-qty). Never below 0. */
@@ -6387,7 +6439,9 @@ var p=co.imagePublicId;co.imageUrl='';co.imagePublicId='';if(p&&window.fbDeleteS
 render();afterPersistToast(persist,'Image removed (emoji fallback is shown).')}
 /* FIX #4: hide loader once DOM + first Firebase snapshots are ready, 500ms fade */
 (function(){var t0=Date.now(),L=document.getElementById('appLoader'),lg=document.getElementById('alLogo');if(lg&&window.S)lg.innerHTML=logoHTML(S.name);
-var iv=setInterval(function(){var cs=window.CLOUD_SEEN||{};var ok=document.readyState!=='loading'&&((cs.products&&cs.config)||Date.now()-t0>6000);if(!ok&&Date.now()-t0<8000)return;clearInterval(iv);
+/* PERF: if the cloud never answers (offline first visit) show the built-in sample catalogue after 10s instead of skeletons forever */
+setTimeout(function(){if(!window.__DATA_READY){window.__DATA_READY=true;try{render()}catch(e){}}},10000);
+var iv=setInterval(function(){var cs=window.CLOUD_SEEN||{};var ok=document.readyState!=='loading'&&((cs.products&&cs.config)||Date.now()-t0>2500);if(!ok&&Date.now()-t0<3500)return;clearInterval(iv);
 document.documentElement.classList.remove('app-loading');if(L){L.classList.add('hide');setTimeout(function(){L.remove()},520)}},100)})();
 </script>
 <style id="fix-hero-position">
